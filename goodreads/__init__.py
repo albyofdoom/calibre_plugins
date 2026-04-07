@@ -4,6 +4,7 @@ __license__ = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
 import time, json, re, random, threading, os, traceback
+import time, json, re, random, threading, os, traceback
 try:
     from urllib.parse import quote
 except ImportError:
@@ -24,6 +25,70 @@ from calibre.ebooks.metadata.sources.base import Source, fixcase, fixauthors
 from calibre.utils.icu import lower
 from calibre.utils.cleantext import clean_ascii_chars
 from calibre.constants import numeric_version as calibre_version
+
+
+class _TeeLog:
+    '''
+    Wraps calibre's log object and simultaneously writes all output to a file
+    on disk. The file is line-buffered so data is always flushed immediately,
+    making it readable even when a job is hung or forcibly aborted.
+    Pass append=True to add to an existing log file rather than overwriting it.
+    '''
+    def __init__(self, log, filepath, append=False):
+        self._log  = log
+        self._lock = threading.Lock()
+        mode = 'a' if append else 'w'
+        try:
+            self._f = open(filepath, mode, encoding='utf-8', buffering=1)
+            if not append:
+                self._write('=== Goodreads metadata download log ===')
+                self._write('Log file: ' + filepath)
+                self._write('')
+            else:
+                self._write('')
+        except Exception as e:
+            self._f = None
+            log.warning('_TeeLog: could not open log file %s: %s' % (filepath, e))
+
+    def _write(self, msg):
+        if self._f is None:
+            return
+        try:
+            ts = time.strftime('%H:%M:%S')
+            with self._lock:
+                self._f.write('[%s] %s\n' % (ts, msg))
+        except Exception:
+            pass
+
+    # calibre log objects are also callable directly as log('msg')
+    def __call__(self, *args, **kwargs):
+        self._log(*args, **kwargs)
+        self._write(' '.join(str(a) for a in args))
+
+    def info(self, *args, **kwargs):
+        self._log.info(*args, **kwargs)
+        self._write('INFO  ' + ' '.join(str(a) for a in args))
+
+    def debug(self, *args, **kwargs):
+        self._log.debug(*args, **kwargs)
+        self._write('DEBUG ' + ' '.join(str(a) for a in args))
+
+    def warning(self, *args, **kwargs):
+        self._log.warning(*args, **kwargs)
+        self._write('WARN  ' + ' '.join(str(a) for a in args))
+
+    def error(self, *args, **kwargs):
+        self._log.error(*args, **kwargs)
+        self._write('ERROR ' + ' '.join(str(a) for a in args))
+
+    def exception(self, *args, **kwargs):
+        self._log.exception(*args, **kwargs)
+        self._write('EXCPT ' + ' '.join(str(a) for a in args))
+        tb = traceback.format_exc()
+        if tb and tb.strip() != 'NoneType: None':
+            for line in tb.splitlines():
+                self._write('      ' + line)
+
 
 
 class _TeeLog:
@@ -196,6 +261,7 @@ class Goodreads(Source):
     def get_goodreads_id_using_api(self, log, abort, timeout=30, identifier=None):
         
         log.debug('get_goodreads_id_using_api - identifier=%s' % identifier)
+        log.debug('get_goodreads_id_using_api - identifier=%s' % identifier)
         
         if not identifier:
             return None
@@ -212,10 +278,15 @@ class Goodreads(Source):
         try:
             log.info('get_goodreads_id_using_api: querying (timeout=%ds): %s' % (timeout, query))
             t0 = time.time()
+            log.info('get_goodreads_id_using_api: querying (timeout=%ds): %s' % (timeout, query))
+            t0 = time.time()
             raw = br.open_novisit(query, timeout=timeout).read()
             log.info('get_goodreads_id_using_api: response received in %.1fs' % (time.time() - t0))
             log.debug('get_goodreads_id_using_api: JSON result: %s' % raw)
+            log.info('get_goodreads_id_using_api: response received in %.1fs' % (time.time() - t0))
+            log.debug('get_goodreads_id_using_api: JSON result: %s' % raw)
         except Exception as e:
+            err = 'get_goodreads_id_using_api: failed to query: %r' % query
             err = 'get_goodreads_id_using_api: failed to query: %r' % query
             log.exception(err)
             raise
@@ -224,6 +295,7 @@ class Goodreads(Source):
             json_result = json.loads(raw)
             if len(json_result) >= 1:
                 goodreads_id = json_result[0].get('bookId', None)
+        log.info('get_goodreads_id_using_api: result=%s' % goodreads_id)
         log.info('get_goodreads_id_using_api: result=%s' % goodreads_id)
         return goodreads_id
         
@@ -272,22 +344,24 @@ class Goodreads(Source):
         log = _TeeLog(log, _log_path, append=True)
         log.info('--- identify start: title=%s, authors=%s' % (title, authors))
         log.info('identify: identifiers=%s, timeout=%ds' % (identifiers, timeout))
+        from calibre.utils.config import config_dir
+        _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
+        log = _TeeLog(log, _log_path, append=True)
+        log.info('--- identify start: title=%s, authors=%s' % (title, authors))
+        log.info('identify: identifiers=%s, timeout=%ds' % (identifiers, timeout))
         matches = []
-        # Give explicit priority to any goodreads identifier already on the book.
-        # This check must happen before any API calls so that network errors in
-        # the ISBN/ASIN autocomplete path cannot interfere with it.
-        goodreads_id = identifiers.get(self.ID_NAME, None) if identifiers else None
-        if goodreads_id:
-            log.info('identify: using existing goodreads identifier: %s' % goodreads_id)
-        else:
-            # No goodreads id present directly - try to find one via other identifier
-            # lookups (ISBN, ASIN).  If the API call fails, fall through to the
-            # title/author search below rather than aborting.
-            try:
-                if identifiers:
-                    goodreads_id = self.get_goodreads_id_from_identifiers(log, abort, timeout=timeout, identifiers=identifiers)
-            except Exception as e:
-                log.exception('Failed to get Goodreads id using auto_complete API; will fall back to title/author search')
+        goodreads_id = None
+        # Unlike the other metadata sources, if we have a goodreads id then we
+        # do not need to fire a "search" at Goodreads.com. Instead we will be
+        # able to go straight to the URL for that book. We can use some identifiers 
+        # to get the Goodreads ID via an API if we don't already have it.
+        try:
+            if identifiers:
+                goodreads_id = self.get_goodreads_id_from_identifiers(log, abort, timeout=timeout, identifiers=identifiers)
+        except Exception as e:
+            err = 'Failed to trying to get Goodreads id using auto_complete API'
+            log.exception(err)
+            return as_unicode(e)
 
         br = self.browser
 
@@ -330,7 +404,9 @@ class Goodreads(Source):
 
         from calibre_plugins.goodreads.worker import Worker
         workers = [Worker(url, result_queue, br, log, i, self, timeout) for i, url in
+        workers = [Worker(url, result_queue, br, log, i, self, timeout) for i, url in
                 enumerate(matches)]
+        log.info('identify: spawning %d worker(s) for urls: %s' % (len(workers), matches))
         log.info('identify: spawning %d worker(s) for urls: %s' % (len(workers), matches))
 
         for w in workers:
@@ -340,17 +416,22 @@ class Goodreads(Source):
 
         log.info('identify: waiting for workers to complete (timeout per worker request=%ds)' % timeout)
         wait_start = time.time()
+        log.info('identify: waiting for workers to complete (timeout per worker request=%ds)' % timeout)
+        wait_start = time.time()
         while not abort.is_set():
             a_worker_is_alive = False
             for w in workers:
                 w.join(0.2)
                 if abort.is_set():
                     log.warning('identify: abort signalled while waiting for workers')
+                    log.warning('identify: abort signalled while waiting for workers')
                     break
                 if w.is_alive():
                     a_worker_is_alive = True
             if not a_worker_is_alive:
                 break
+        log.info('identify: all workers finished (%.1fs total wait)' % (time.time() - wait_start))
+        log.info('--- identify end: title=%s' % title)
         log.info('identify: all workers finished (%.1fs total wait)' % (time.time() - wait_start))
         log.info('--- identify end: title=%s' % title)
 
@@ -479,8 +560,13 @@ class Goodreads(Source):
         _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
         log = _TeeLog(log, _log_path, append=True)
         log.info('--- download_cover start: title=%s, identifiers=%s, timeout=%ds' % (title, identifiers, timeout))
+        from calibre.utils.config import config_dir
+        _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
+        log = _TeeLog(log, _log_path, append=True)
+        log.info('--- download_cover start: title=%s, identifiers=%s, timeout=%ds' % (title, identifiers, timeout))
         cached_url = self.get_cached_cover_url(identifiers)
         if cached_url is None:
+            log.info('download_cover: no cached cover URL, running identify')
             log.info('download_cover: no cached cover URL, running identify')
             rq = Queue()
             self.identify(log, rq, abort, title=title, authors=authors,
@@ -501,6 +587,7 @@ class Goodreads(Source):
                     break
         if cached_url is None:
             log.info('download_cover: no cover URL found, giving up')
+            log.info('download_cover: no cover URL found, giving up')
             return
 
         if abort.is_set():
@@ -508,11 +595,16 @@ class Goodreads(Source):
         br = self.browser
         log.info('download_cover: fetching cover (timeout=%ds): %s' % (timeout, cached_url))
         t0 = time.time()
+        log.info('download_cover: fetching cover (timeout=%ds): %s' % (timeout, cached_url))
+        t0 = time.time()
         try:
             cdata = br.open_novisit(cached_url, timeout=timeout).read()
             log.info('download_cover: cover fetched in %.1fs (%d bytes)' % (time.time() - t0, len(cdata)))
+            log.info('download_cover: cover fetched in %.1fs (%d bytes)' % (time.time() - t0, len(cdata)))
             result_queue.put((self, cdata))
         except:
+            log.exception('download_cover: failed to fetch cover from: %s' % cached_url)
+        log.info('--- download_cover end: title=%s' % title)
             log.exception('download_cover: failed to fetch cover from: %s' % cached_url)
         log.info('--- download_cover end: title=%s' % title)
 

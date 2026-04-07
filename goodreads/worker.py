@@ -4,9 +4,11 @@ __license__   = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
 import socket, re, datetime, json, time
+import socket, re, datetime, json, time
 from collections import OrderedDict
 from threading import Thread
 
+from lxml.html import tostring, fromstring
 from lxml.html import tostring, fromstring
 from six import text_type as unicode
 
@@ -67,13 +69,20 @@ class Worker(Thread): # Get details
     def run(self):
         self.log.info('Worker starting for url: %r (timeout=%ds)' % (self.url, self.timeout))
         start_time = time.time()
+        self.log.info('Worker starting for url: %r (timeout=%ds)' % (self.url, self.timeout))
+        start_time = time.time()
         try:
             retry = True
             retryCount = 0
             while retry and retryCount <= 10:
                 retryCount += 1
                 self.log.info('Get details attempt #%d for url: %r' % (retryCount, self.url))
+                self.log.info('Get details attempt #%d for url: %r' % (retryCount, self.url))
                 retry = self.get_details()
+                if retry:
+                    sleep_secs = min(2 ** (retryCount - 1), 30)  # 1, 2, 4, 8, 16, 30, 30...
+                    self.log.warning('Attempt #%d returned retry=True, sleeping %.0fs before retry' % (retryCount, sleep_secs))
+                    time.sleep(sleep_secs)
                 if retry:
                     sleep_secs = min(2 ** (retryCount - 1), 30)  # 1, 2, 4, 8, 16, 30, 30...
                     self.log.warning('Attempt #%d returned retry=True, sleeping %.0fs before retry' % (retryCount, sleep_secs))
@@ -82,14 +91,23 @@ class Worker(Thread): # Get details
             self.log.exception('get_details failed for url: %r' % self.url)
         elapsed = time.time() - start_time
         self.log.info('Worker finished for url: %r (%.1fs elapsed, %d attempt(s))' % (self.url, elapsed, retryCount))
+            self.log.exception('get_details failed for url: %r' % self.url)
+        elapsed = time.time() - start_time
+        self.log.info('Worker finished for url: %r (%.1fs elapsed, %d attempt(s))' % (self.url, elapsed, retryCount))
 
     def get_details(self):
         try:
             self.log.info('get_details: opening url (timeout=%ds): %r' % (self.timeout, self.url))
             t0 = time.time()
+            self.log.info('get_details: opening url (timeout=%ds): %r' % (self.timeout, self.url))
+            t0 = time.time()
             raw = self.browser.open_novisit(self.url, timeout=self.timeout).read().strip()
             self.log.info('get_details: page fetched in %.1fs (%d bytes)' % (time.time() - t0, len(raw)))
+            self.log.info('get_details: page fetched in %.1fs (%d bytes)' % (time.time() - t0, len(raw)))
         except Exception as e:
+            code = e.getcode() if callable(getattr(e, 'getcode', None)) else None
+            if code == 404:
+                self.log.error('get_details: URL malformed (404): %r' % self.url)
             code = e.getcode() if callable(getattr(e, 'getcode', None)) else None
             if code == 404:
                 self.log.error('get_details: URL malformed (404): %r' % self.url)
@@ -98,12 +116,18 @@ class Worker(Thread): # Get details
                 # Transient server-side error (502, 503, etc.) — signal retry
                 self.log.warning('get_details: HTTP %d from Goodreads, will retry: %r' % (code, self.url))
                 return True
+            if code is not None and code >= 500:
+                # Transient server-side error (502, 503, etc.) — signal retry
+                self.log.warning('get_details: HTTP %d from Goodreads, will retry: %r' % (code, self.url))
+                return True
             attr = getattr(e, 'args', [None])
             attr = attr if attr else [None]
             if isinstance(attr[0], socket.timeout):
                 msg = 'get_details: Goodreads timed out after %ds for url: %r' % (self.timeout, self.url)
+                msg = 'get_details: Goodreads timed out after %ds for url: %r' % (self.timeout, self.url)
                 self.log.error(msg)
             else:
+                msg = 'get_details: Failed to fetch url (HTTP %s): %r' % (code, self.url)
                 msg = 'get_details: Failed to fetch url (HTTP %s): %r' % (code, self.url)
                 self.log.exception(msg)
             return False
@@ -146,14 +170,19 @@ class Worker(Thread): # Get details
 
         try:
             self.log.info('get_details: parsing book JSON from page')
+            self.log.info('get_details: parsing book JSON from page')
             (book_json, series_json, contributors_list_json, work_json) = self.parse_book_json(root)
             if not book_json:
                 self.log.warning('get_details: No book_json in response, will retry: %r' % self.url)
+                self.log.warning('get_details: No book_json in response, will retry: %r' % self.url)
                 return True
+            self.log.info('get_details: book_json found, parsing details')
             self.log.info('get_details: book_json found, parsing details')
             self.parse_details(root, book_json, series_json, contributors_list_json, work_json)
             self.log.info('get_details: parse_details completed successfully')
+            self.log.info('get_details: parse_details completed successfully')
         except:
+            msg = 'get_details: Failed attempting to read book json from: %r' % self.url
             msg = 'get_details: Failed attempting to read book json from: %r' % self.url
             self.log.exception(msg)
             return False
@@ -257,6 +286,8 @@ class Worker(Thread): # Get details
                     asin = self.parse_asin(book_json)
                     if asin:
                         mi.set_identifier('amazon', asin)
+                    if asin:
+                        mi.set_identifier('amazon', asin)
         except:
             self.log.exception('Error parsing ASIN for url: %r'%self.url)
 
@@ -274,6 +305,8 @@ class Worker(Thread): # Get details
             if get_votes:
                 if work_json:
                     votes = self.parse_rating_count(work_json)
+                    if votes is not None:
+                        mi.set_identifier('grvotes', str(votes))
                     if votes is not None:
                         mi.set_identifier('grvotes', str(votes))
         except:
@@ -298,6 +331,14 @@ class Worker(Thread): # Get details
         try:
             if book_json:
                 tags = self.parse_tags(book_json)
+            get_shelves_tags = cfg.plugin_prefs[cfg.STORE_NAME].get(cfg.KEY_GET_SHELVES_TAGS, False)
+            if get_shelves_tags and goodreads_id:
+                shelves_tags = self.parse_shelves_tags(goodreads_id)
+                if shelves_tags:
+                    tags = list(tags) if tags else []
+                    for tag in shelves_tags:
+                        if tag not in tags:
+                            tags.append(tag)
             get_shelves_tags = cfg.plugin_prefs[cfg.STORE_NAME].get(cfg.KEY_GET_SHELVES_TAGS, False)
             if get_shelves_tags and goodreads_id:
                 shelves_tags = self.parse_shelves_tags(goodreads_id)
@@ -456,12 +497,26 @@ class Worker(Thread): # Get details
                 content_length = info.get('Content-Length')
                 if content_length is None or int(content_length) > 1000:
                     self.log.info('parse_cover: image url accepted (Content-Length=%s)' % content_length)
+                self.log.info('parse_cover: probing image url (timeout=%ds): %s' % (self.timeout, img_url))
+                try:
+                    t0 = time.time()
+                    info = self.browser.open_novisit(img_url, timeout=self.timeout).info()
+                    self.log.info('parse_cover: image probe completed in %.1fs' % (time.time() - t0))
+                except Exception as e:
+                    self.log.warning('parse_cover: failed to probe image url %s: %s' % (img_url, e))
+                    return None
+                content_length = info.get('Content-Length')
+                if content_length is None or int(content_length) > 1000:
+                    self.log.info('parse_cover: image url accepted (Content-Length=%s)' % content_length)
                     return img_url
                 else:
                     self.log.warning('parse_cover: broken image (Content-Length=%s) for url: %s' % (content_length, img_url))
+                    self.log.warning('parse_cover: broken image (Content-Length=%s) for url: %s' % (content_length, img_url))
             else:
                 self.log.warning('parse_cover: empty imageUrl in book json')
+                self.log.warning('parse_cover: empty imageUrl in book json')
         else:
+            self.log.warning('parse_cover: no imageUrl key in book json')
             self.log.warning('parse_cover: no imageUrl key in book json')
 
     def parse_isbn(self, book_json):
@@ -531,47 +586,14 @@ class Worker(Thread): # Get details
         if len(calibre_tags) > 0:
             return calibre_tags
 
-    def _search_json_for_shelves(self, obj, out, _depth=0):
-        '''
-        Recursively walk a JSON structure and collect shelf-name / vote-count pairs.
-
-        A value is treated as a shelf entry when it is a dict containing:
-          - a name-like key ('shelfName' or 'name') whose value is a
-            lowercase, hyphen-separated slug (e.g. "science-fiction")
-          - a count-like key ('count', 'userCount', or 'shelvesCount') whose
-            value is a positive integer
-
-        Using 'name' as a fallback is intentional but filtered strictly via the
-        slug pattern so that author names, book titles, etc. are never matched.
-        '''
-        if _depth > 12 or not isinstance(obj, (dict, list)):
-            return
-        if isinstance(obj, list):
-            for item in obj:
-                if isinstance(item, dict):
-                    name = item.get('shelfName') or item.get('name')
-                    count = (item.get('count') or item.get('userCount') or
-                             item.get('shelvesCount'))
-                    if (isinstance(name, str) and isinstance(count, (int, float))
-                            and count >= 1
-                            and re.match(r'^[a-z][a-z0-9\-]+$', name)):
-                        out[name] = max(out.get(name, 0), int(count))
-                self._search_json_for_shelves(item, out, _depth + 1)
-        elif isinstance(obj, dict):
-            for v in obj.values():
-                self._search_json_for_shelves(v, out, _depth + 1)
-
     def parse_shelves_tags(self, goodreads_id):
         '''
         Fetch the Goodreads community shelves page for a book and convert popular
         user shelves to calibre tags using the configured shelf-to-tag mappings and
         vote-count thresholds.
 
-        Shelf data is extracted by recursively searching the embedded Next.js
-        __NEXT_DATA__ JSON for any object that looks like a shelf entry (lowercase-
-        hyphenated name + integer count), then merged with whatever the legacy HTML
-        parser finds.  Both paths are always attempted so that a partial JSON result
-        does not suppress the HTML results.
+        Tries to parse shelf data from the Next.js __NEXT_DATA__ JSON first (post-2022
+        Goodreads format), then falls back to legacy HTML parsing.
         '''
         shelves_url = 'https://www.goodreads.com/book/shelves/' + goodreads_id
         self.log.info('parse_shelves_tags: fetching %s' % shelves_url)
@@ -587,39 +609,45 @@ class Worker(Thread): # Get details
         shelves = {}
 
         # Try to extract shelf data from the Next.js JSON embedded in the page (post-2022 format).
-        # Use a recursive search rather than looking for specific key names, because the
-        # shelves data can appear under many different keys depending on page version.
         script_match = re.search(r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>', raw_utf8, re.DOTALL)
         if script_match:
             try:
                 page_data = json.loads(script_match.group(1))
-                self._search_json_for_shelves(page_data, shelves)
+                apollo = page_data.get('props', {}).get('pageProps', {}).get('apolloState', {})
+                for obj in apollo.values():
+                    if not isinstance(obj, dict):
+                        continue
+                    for key in ('shelves', 'userShelves', 'communityShelvesCount', 'shelvesCount'):
+                        shelf_list = obj.get(key)
+                        if isinstance(shelf_list, list):
+                            for s in shelf_list:
+                                name = s.get('shelfName') or s.get('name')
+                                count = s.get('count') or s.get('userCount')
+                                if name and count:
+                                    shelves[name] = int(count)
                 if shelves:
                     self.log.info('parse_shelves_tags: found %d shelves in JSON data' % len(shelves))
             except Exception as e:
                 self.log.warning('parse_shelves_tags: failed to parse JSON shelf data: %s' % str(e))
 
-        # Always also try the legacy HTML parsing and merge results.
-        # This is not a fallback — both paths run so that shelves missed by the JSON
-        # search (e.g. community shelves only present in rendered HTML) are captured.
-        try:
-            root = fromstring(clean_html(raw_utf8))
-            html_count = 0
-            for shelf in root.xpath('//div[contains(@class, "shelfStat")]'):
-                name_nodes = shelf.xpath('.//a[contains(@class, "actionLinkLite")]')
-                count_nodes = shelf.xpath('.//div[contains(@class, "smallText")]')
-                if name_nodes and count_nodes:
-                    name = name_nodes[0].text_content().strip()
-                    count_text = count_nodes[0].text_content().strip().split()[0].replace(',', '')
-                    try:
-                        shelves[name] = max(shelves.get(name, 0), int(count_text))
-                        html_count += 1
-                    except ValueError:
-                        pass
-            if html_count:
-                self.log.info('parse_shelves_tags: found %d shelves in HTML' % html_count)
-        except Exception as e:
-            self.log.warning('parse_shelves_tags: failed to parse HTML shelf data: %s' % str(e))
+        # Fall back to legacy HTML parsing if JSON did not supply shelf data.
+        if not shelves:
+            try:
+                root = fromstring(clean_html(raw_utf8))
+                for shelf in root.xpath('//div[contains(@class, "shelfStat")]'):
+                    name_nodes = shelf.xpath('.//a[contains(@class, "actionLinkLite")]')
+                    count_nodes = shelf.xpath('.//div[contains(@class, "smallText")]')
+                    if name_nodes and count_nodes:
+                        name = name_nodes[0].text_content().strip()
+                        count_text = count_nodes[0].text_content().strip().split()[0].replace(',', '')
+                        try:
+                            shelves[name] = int(count_text)
+                        except ValueError:
+                            pass
+                if shelves:
+                    self.log.info('parse_shelves_tags: found %d shelves in HTML' % len(shelves))
+            except Exception as e:
+                self.log.warning('parse_shelves_tags: failed to parse HTML shelf data: %s' % str(e))
 
         if not shelves:
             self.log.warning('parse_shelves_tags: no shelf data found on page')
