@@ -1254,7 +1254,7 @@ class DimensionsTab(QWidget):
         for i, field in enumerate(visible_fields):
             name = field['name']
             is_last = (i == len(visible_fields) - 1)
-            label = QLabel(name + ':', self.text_padding_groupbox)
+            label = QLabel(_(name) + ':', self.text_padding_groupbox)
             self.text_padding_layout.addWidget(label, i, 0)
             spin = QSpinBox(self.text_padding_groupbox)
             spin.setRange(0, 5000)
@@ -1695,7 +1695,6 @@ class CoverOptionsDialog(SizePersistedDialog):
         left_mgn = int(unicode(self.dimensions_tab.left_margin_spin.value()).strip())
         right_mgn = int(unicode(self.dimensions_tab.right_margin_spin.value()).strip())
         image_mgn = int(unicode(self.dimensions_tab.image_margin_spin.value()).strip())
-        self.current[cfg.KEY_MARGINS] = (top_mgn, bottom_mgn, left_mgn)
         self.current[cfg.KEY_MARGINS] = {'top':    top_mgn,
                                          'bottom': bottom_mgn,
                                          'left':   left_mgn,
@@ -1706,8 +1705,6 @@ class CoverOptionsDialog(SizePersistedDialog):
         for field_name, spin in self.dimensions_tab._text_padding_spins.items():
             if spin.isEnabled():
                 text_padding[field_name] = int(spin.value())
-            else:
-                text_padding[field_name] = 0
         self.current[cfg.KEY_TEXT_PADDING] = text_padding
 
         cover_border_width = int(unicode(self.dimensions_tab.cover_border_width_spin.value()).strip())
@@ -1765,8 +1762,9 @@ class CoverOptionsDialog(SizePersistedDialog):
             return
         field_order = self.current[cfg.KEY_FIELD_ORDER]
         text_padding = self.current.get(cfg.KEY_TEXT_PADDING, {})
+        default_margin = self.current[cfg.KEY_MARGINS].get('text', 30)
         self.block_updates = True
-        self.dimensions_tab.rebuild_text_padding(field_order, text_padding)
+        self.dimensions_tab.rebuild_text_padding(field_order, text_padding, default_margin)
         self.block_updates = False
 
     def display_preview(self):
