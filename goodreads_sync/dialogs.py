@@ -347,10 +347,10 @@ class ActionStatus(object):
 
 class ChooseShelvesToSyncDialog(SizePersistedDialog):
 
-    def __init__(self, parent=None, plugin_action=None, grhttp=None, user_name=None, shelves=None):
+    def __init__(self, parent=None, plugin_action=None, grhttp=None, user_name=None, shelves=[]):
         SizePersistedDialog.__init__(self, parent, 'goodreads sync plugin:shelves sync dialog')
         self.setWindowTitle(_('Select shelves to sync from:'))
-        self.grhttp, self.user_name, self.shelves = (grhttp, user_name, shelves or [])
+        self.grhttp, self.user_name, self.shelves = (grhttp, user_name, shelves)
         self.gui = parent
         self.plugin_action = plugin_action
 
@@ -2353,7 +2353,7 @@ class DoShelfSyncDialog(SizePersistedDialog):
         self.update_date_read = False
         self.update_review_text = False
         for shelf in self.shelves:
-            sync_actions = shelf.get(cfg.KEY_SYNC_ACTIONS, [])
+            sync_actions = shelf[cfg.KEY_SYNC_ACTIONS]
             if len(sync_actions) > 0:
                 text += _('For books on the <b>{0}</b> shelf:<br>').format(shelf['name'])
                 for sync_action in sync_actions:
@@ -2592,9 +2592,7 @@ class DoShelfSyncDialog(SizePersistedDialog):
         goodreads_book['calibre_id'] = calibre_id
         goodreads_book['calibre_isbn'] = calibre_books[0]['calibre_isbn']
         goodreads_book['calibre_title'] = calibre_books[0]['calibre_title']
-        goodreads_book['calibre_title_sort'] = calibre_books[0].get('calibre_title_sort', calibre_books[0]['calibre_title'])
         goodreads_book['calibre_author'] = calibre_books[0]['calibre_author']
-        goodreads_book['calibre_author_sort'] = calibre_books[0].get('calibre_author_sort', calibre_books[0]['calibre_author'])
         goodreads_book['calibre_series'] = calibre_books[0]['calibre_series']
         goodreads_book['calibre_rating'] = calibre_books[0]['calibre_rating']
         goodreads_book['calibre_date_read'] = calibre_books[0]['calibre_date_read']
