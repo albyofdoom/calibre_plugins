@@ -4,6 +4,7 @@ __license__   = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
 import csv, io, re, collections, copy
+import csv, io, re, collections, copy
 from functools import partial
 
 # calibre Python 3 compatibility.
@@ -145,6 +146,7 @@ class SwitchEditionTableWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setRowCount(len(goodreads_edition_books))
         header_labels = [_('Title'), _('Cover'), _('In Library'), _('Edition')]
+        header_labels = [_('Title'), _('Cover'), _('In Library'), _('Edition')]
         self.setColumnCount(len(header_labels))
         self.setHorizontalHeaderLabels(header_labels)
         self.verticalHeader().setDefaultSectionSize(24)
@@ -157,6 +159,8 @@ class SwitchEditionTableWidget(QTableWidget):
         self.resizeColumnsToContents()
         self.setMinimumColumnWidth(0, 150)
         self.setMinimumColumnWidth(1, 50)
+        self.setMinimumColumnWidth(2, 60)
+        self.setMinimumColumnWidth(3, 100)
         self.setMinimumColumnWidth(2, 60)
         self.setMinimumColumnWidth(3, 100)
         self.setRangeColumnWidth(0, 150, 300) # Title
@@ -184,6 +188,9 @@ class SwitchEditionTableWidget(QTableWidget):
         title_item.setData(Qt.UserRole, row)
         self.setItem(row, 0, title_item)
         self.setItem(row, 1, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_cover']))
+        in_library = _('Yes') if existing_calibre_ids else ''
+        self.setItem(row, 2, ReadOnlyTableWidgetItem(in_library))
+        self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_edition']))
         in_library = _('Yes') if existing_calibre_ids else ''
         self.setItem(row, 2, ReadOnlyTableWidgetItem(in_library))
         self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_edition']))
@@ -983,6 +990,7 @@ class PickGoodreadsBookTableWidget(QTableWidget):
         self.setAlternatingRowColors(True)
         self.setRowCount(len(goodreads_search_books))
         header_labels = [_('Title'), _('Author'), _('In Library'), _('Series')]
+        header_labels = [_('Title'), _('Author'), _('In Library'), _('Series')]
         self.setColumnCount(len(header_labels))
         self.setHorizontalHeaderLabels(header_labels)
         self.verticalHeader().setDefaultSectionSize(24)
@@ -995,6 +1003,8 @@ class PickGoodreadsBookTableWidget(QTableWidget):
         self.resizeColumnsToContents()
         self.setMinimumColumnWidth(0, 150)
         self.setMinimumColumnWidth(1, 150)
+        self.setMinimumColumnWidth(2, 60)
+        self.setMinimumColumnWidth(3, 70)
         self.setMinimumColumnWidth(2, 60)
         self.setMinimumColumnWidth(3, 70)
         self.setRangeColumnWidth(0, 150, 300) # Title
@@ -1023,6 +1033,9 @@ class PickGoodreadsBookTableWidget(QTableWidget):
         title_item.setData(Qt.UserRole, row)
         self.setItem(row, 0, title_item)
         self.setItem(row, 1, ReadOnlyTableWidgetItem(goodreads_search_book['goodreads_author']))
+        in_library = _('Yes') if existing_calibre_ids else ''
+        self.setItem(row, 2, ReadOnlyTableWidgetItem(in_library))
+        self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_search_book['goodreads_series']))
         in_library = _('Yes') if existing_calibre_ids else ''
         self.setItem(row, 2, ReadOnlyTableWidgetItem(in_library))
         self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_search_book['goodreads_series']))
@@ -1953,15 +1966,6 @@ class DoShelfSyncTableWidget(QTableWidget):
         self.copy_all_action = QAction(_('Copy All'), self)
         self.copy_all_action.triggered.connect(self.copy_all_click)
         self.addAction(self.copy_all_action)
-        sep3 = QAction(self)
-        sep3.setSeparator(True)
-        self.addAction(sep3)
-        self.check_selected_action = QAction(_('Include selected in Sync'), self)
-        self.check_selected_action.triggered.connect(self.check_selected_rows)
-        self.addAction(self.check_selected_action)
-        self.uncheck_selected_action = QAction(_('Exclude selected from Sync'), self)
-        self.uncheck_selected_action.triggered.connect(self.uncheck_selected_rows)
-        self.addAction(self.uncheck_selected_action)
 
     def populate_table(self, goodreads_books):
         self.clear()
@@ -2169,6 +2173,53 @@ class DoShelfSyncTableWidget(QTableWidget):
                     if idx is not None:
                         included.add(idx)
         return included
+
+    def _get_cell_text(self, row, col):
+        item = self.item(row, col)
+        if item is None:
+            return ''
+        if col == 0:
+            return 'Yes' if item.checkState() == Qt.Checked else 'No'
+        if col in (2, 3):
+            from calibre.utils.date import UNDEFINED_DATE, format_date
+            val = item.data(Qt.DisplayRole)
+            if val is None:
+                return ''
+            try:
+                py_dt = val.toPyDateTime()
+                if py_dt.replace(tzinfo=None).date() == UNDEFINED_DATE.date():
+                    return ''
+                return format_date(py_dt, self.format)
+            except Exception:
+                return ''
+        if col in (4, 5):
+            val = item.data(Qt.DisplayRole)
+            if val is None or val == 0:
+                return ''
+            return str(val // 2)
+        return item.text()
+
+    def _copy_rows_to_clipboard(self, rows):
+        output = io.StringIO()
+        writer = csv.writer(output)
+        # Header row — skip the hidden book_no column (last column)
+        visible_col_count = self.columnCount() - 1
+        headers = []
+        for col in range(visible_col_count):
+            header = self.horizontalHeaderItem(col)
+            headers.append(header.text() if header else '')
+        writer.writerow(headers)
+        for row in rows:
+            writer.writerow([self._get_cell_text(row, col) for col in range(visible_col_count)])
+        QApplication.clipboard().setText(output.getvalue())
+
+    def copy_selected_click(self):
+        rows = sorted(set(index.row() for index in self.selectionModel().selectedRows()))
+        if rows:
+            self._copy_rows_to_clipboard(rows)
+
+    def copy_all_click(self):
+        self._copy_rows_to_clipboard(list(range(self.rowCount())))
 
     def search_for_calibre_books_click(self):
         (rows, books) = self.get_selected_books(status=[ActionStatus.NO_LINK])
@@ -2458,6 +2509,7 @@ class DoShelfSyncDialog(SizePersistedDialog):
                 goodreads_book['calibre_review_text'] = ''
                 self.update_book_status(goodreads_book)
                 self.summary_table.find_and_populate_table_row(row, goodreads_book)
+                self.summary_table.find_and_populate_table_row(row, goodreads_book)
                 toggled_ids.append(goodreads_book['goodreads_id'])
 
         # Get our setting to know whether to convert Goodreads author FN LN to LN, FN
@@ -2487,6 +2539,7 @@ class DoShelfSyncDialog(SizePersistedDialog):
             goodreads_book['calibre_series'] = goodreads_book['goodreads_series']
             goodreads_book['status'] = ActionStatus.ADD_EMPTY
             goodreads_book['status_msg'] = _('Add to calibre')
+            self.summary_table.find_and_populate_table_row(row, goodreads_book)
             self.summary_table.find_and_populate_table_row(row, goodreads_book)
         # Ensure our error counts reflect the latest info
         self.update_error_counts()
