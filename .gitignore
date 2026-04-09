@@ -128,3 +128,4 @@ common_*.py
 
 # References to the old plugin folder structure
 GoodreadsMoreTags/
+.vscode
