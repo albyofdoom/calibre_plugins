@@ -126,5 +126,6 @@ common_*.py
 # Except those in our common folder where they should be.
 !common/common_*.py
 
-# Ignore reference code
-GoodreadsMoreTags
+# References to the old plugin folder structure
+GoodreadsMoreTags/
+.vscode
