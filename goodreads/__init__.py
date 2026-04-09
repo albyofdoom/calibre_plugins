@@ -109,6 +109,11 @@ class Goodreads(Source):
     BASE_URL = 'https://www.goodreads.com'
     MAX_EDITIONS = 5
 
+    # Seconds of inactivity after which the next identify() call is treated as
+    # the start of a new bulk-download session and the log file is replaced.
+    _BULK_SESSION_GAP = 30
+    _last_identify_time = 0.0  # class-level; shared across all instances
+
     @property
     def user_agent(self):
         # This utter filth is necessary to deal with periods of time when calibre did or did not have
@@ -269,7 +274,10 @@ class Goodreads(Source):
         '''
         from calibre.utils.config import config_dir
         _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
-        log = _TeeLog(log, _log_path, append=True)
+        now = time.time()
+        new_session = (now - Goodreads._last_identify_time) > Goodreads._BULK_SESSION_GAP
+        Goodreads._last_identify_time = now
+        log = _TeeLog(log, _log_path, append=not new_session)
         log.info('--- identify start: title=%s, authors=%s' % (title, authors))
         log.info('identify: identifiers=%s, timeout=%ds' % (identifiers, timeout))
         matches = []
