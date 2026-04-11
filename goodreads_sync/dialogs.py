@@ -144,7 +144,7 @@ class SwitchEditionTableWidget(QTableWidget):
         self.clear()
         self.setAlternatingRowColors(True)
         self.setRowCount(len(goodreads_edition_books))
-        header_labels = [_('Title'), _('Cover'), _('In Library'), _('Edition')]
+        header_labels = [_('Title'), _('Cover'), _('Edition'), _('ASIN'), _('ISBN'), _('Language'), _('Publisher')]
         self.setColumnCount(len(header_labels))
         self.setHorizontalHeaderLabels(header_labels)
         self.verticalHeader().setDefaultSectionSize(24)
@@ -157,8 +157,11 @@ class SwitchEditionTableWidget(QTableWidget):
         self.resizeColumnsToContents()
         self.setMinimumColumnWidth(0, 150)
         self.setMinimumColumnWidth(1, 50)
-        self.setMinimumColumnWidth(2, 60)
-        self.setMinimumColumnWidth(3, 100)
+        self.setMinimumColumnWidth(2, 100)
+        self.setMinimumColumnWidth(3, 80)  # ASIN
+        self.setMinimumColumnWidth(4, 80)  # ISBN
+        self.setMinimumColumnWidth(5, 70)  # Language
+        self.setMinimumColumnWidth(6, 100) # Publisher
         self.setRangeColumnWidth(0, 150, 300) # Title
         self.setSortingEnabled(True)
         self.setMinimumSize(500, 0)
@@ -184,9 +187,11 @@ class SwitchEditionTableWidget(QTableWidget):
         title_item.setData(Qt.UserRole, row)
         self.setItem(row, 0, title_item)
         self.setItem(row, 1, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_cover']))
-        in_library = _('Yes') if existing_calibre_ids else ''
-        self.setItem(row, 2, ReadOnlyTableWidgetItem(in_library))
-        self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_edition']))
+        self.setItem(row, 2, ReadOnlyTableWidgetItem(goodreads_edition_book['goodreads_edition']))
+        self.setItem(row, 3, ReadOnlyTableWidgetItem(goodreads_edition_book.get('goodreads_asin', '')))
+        self.setItem(row, 4, ReadOnlyTableWidgetItem(goodreads_edition_book.get('goodreads_isbn', '')))
+        self.setItem(row, 5, ReadOnlyTableWidgetItem(goodreads_edition_book.get('goodreads_language', '')))
+        self.setItem(row, 6, ReadOnlyTableWidgetItem(goodreads_edition_book.get('goodreads_publisher', '')))
 
     def item_selection_changed(self):
         has_selected_book = self.selectionModel().hasSelection()
@@ -233,6 +238,9 @@ class SwitchEditionTableWidget(QTableWidget):
         goodreads_edition_book['goodreads_cover'] = ''
         goodreads_edition_book['goodreads_edition'] = ''
         goodreads_edition_book['goodreads_isbn'] = ''
+        goodreads_edition_book['goodreads_asin'] = ''
+        goodreads_edition_book['goodreads_language'] = ''
+        goodreads_edition_book['goodreads_publisher'] = ''
         self.goodreads_edition_books.insert(0, goodreads_edition_book)
         self.populate_table(self.goodreads_edition_books)
         self.selectRow(0)
@@ -248,6 +256,7 @@ class SwitchEditionDialog(SizePersistedDialog):
     def __init__(self, parent, id_caches, calibre_book, goodreads_books,
                  next_book, enable_search=True):
         SizePersistedDialog.__init__(self, parent, 'goodreads sync plugin:switch edition dialog')
+        self.gui = parent
         self.calibre_book = calibre_book
         self.skip = False
         self.setWindowTitle(_('Switch Goodreads Edition'))
@@ -296,6 +305,14 @@ class SwitchEditionDialog(SizePersistedDialog):
             self.skip_button.setToolTip(tip)
             self.skip_button.clicked.connect(self.skip_triggered)
 
+        self.open_book_button = QPushButton(QIcon(I('view.png')), _('Open Book'), self)
+        self.open_book_button.setToolTip(_('Open this calibre book in the viewer'))
+        self.open_book_button.clicked.connect(self.open_book)
+        # Insert directly into the button box layout immediately before the OK button
+        ok_button = self.button_box.button(QDialogButtonBox.Ok)
+        bbox_layout = self.button_box.layout()
+        bbox_layout.insertWidget(bbox_layout.indexOf(ok_button), self.open_book_button)
+
         # Populate with data
         self.pick_book_table.populate_table(goodreads_books)
         # Cause our dialog size to be restored from prefs or created on first usage
@@ -329,6 +346,27 @@ class SwitchEditionDialog(SizePersistedDialog):
     def skip_triggered(self):
         self.skip = True
         self.accept()
+
+    def open_book(self):
+        calibre_id = self.calibre_book['calibre_id']
+        # Walk up the parent chain to reach the main calibre GUI window
+        gui = self.gui
+        while gui is not None and not hasattr(gui, 'iactions'):
+            gui = gui.parent()
+        if gui is None:
+            return
+        view_action = gui.iactions.get('View', None)
+        if not view_action:
+            return
+        db = gui.current_db
+        fmts = db.formats(calibre_id, index_is_id=True)
+        if not fmts:
+            error_dialog(self, _('No formats'),
+                         _('This book has no readable formats.'), show=True)
+            return
+        if isinstance(fmts, str):
+            fmts = fmts.split(',')
+        view_action.view_format_by_id(calibre_id, fmts[0])
 
 
 class ActionStatus(object):
