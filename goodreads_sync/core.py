@@ -745,6 +745,9 @@ class HttpHelper(object):
             goodreads_edition_book = {}
             goodreads_edition_book['goodreads_edition'] = ''
             goodreads_edition_book['goodreads_isbn'] = ''
+            goodreads_edition_book['goodreads_asin'] = ''
+            goodreads_edition_book['goodreads_language'] = ''
+            goodreads_edition_book['goodreads_publisher'] = ''
 
             # To get the edition it might be preceded by the Published
             for idx, data_row_node in enumerate(edition_data_node.xpath('div[@class="dataRow"]')):
@@ -752,6 +755,9 @@ class HttpHelper(object):
                     continue # Will be the title
                 text = tostring(data_row_node, method='text', encoding='unicode').strip()
                 if text.startswith('Published'):
+                    pub_match = re.search(r'\bby\s+(.+)', text)
+                    if pub_match:
+                        goodreads_edition_book['goodreads_publisher'] = pub_match.group(1).strip()
                     continue
                 goodreads_edition_book['goodreads_edition'] = text
                 break
@@ -764,17 +770,25 @@ class HttpHelper(object):
                 goodreads_edition_book['goodreads_cover'] = 'No'
             else:
                 goodreads_edition_book['goodreads_cover'] = 'Yes'
-            goodreads_edition_book['goodreads_isbn'] = ''
-            isbn_node = edition_data_node.xpath('div[@class="moreDetails hideDetails"]/div[@class="dataRow"][2]/div[@class="dataValue"]/span[@class="greyText"]/text()')
-            if len(isbn_node) > 0:
-                isbn = None
-                match_isbn = re.search(r': (\d+)', isbn_node[0])
-                if not match_isbn:
-                    match_isbn = re.search(r'(\d+)', isbn_node[0])
-                if match_isbn:
-                    isbn = match_isbn.groups(0)[0]
-                    if check_isbn(isbn):
-                        goodreads_edition_book['goodreads_isbn'] = isbn
+            for detail_row in edition_data_node.xpath('div[contains(@class,"moreDetails")]/div[@class="dataRow"]'):
+                label = ''.join(detail_row.xpath('div[@class="dataTitle"]/text()')).strip()
+                if 'ISBN' in label:
+                    # ISBN13 is a direct text node; greyText span holds the ISBN10
+                    isbn_text = ''.join(detail_row.xpath('div[@class="dataValue"]/text()')).strip()
+                    if not isbn_text:
+                        isbn_text = ''.join(detail_row.xpath('div[@class="dataValue"]/span[@class="greyText"]/text()')).strip()
+                    if isbn_text:
+                        match_isbn = re.search(r'(\d{10,13})', isbn_text)
+                        if match_isbn:
+                            isbn = match_isbn.group(1)
+                            if check_isbn(isbn):
+                                goodreads_edition_book['goodreads_isbn'] = isbn
+                elif 'ASIN' in label:
+                    asin_val = ''.join(detail_row.xpath('div[@class="dataValue"]/text()')).strip()
+                    goodreads_edition_book['goodreads_asin'] = asin_val
+                elif 'language' in label.lower():
+                    lang_val = ''.join(detail_row.xpath('div[@class="dataValue"]/text()')).strip()
+                    goodreads_edition_book['goodreads_language'] = lang_val
             goodreads_edition_books.append(goodreads_edition_book)
 
         return goodreads_edition_books
