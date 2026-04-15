@@ -48,6 +48,35 @@ except NameError:
 
 SEARCH_TYPES = ['titleauthor', 'binary', 'identifier']
 
+# Match-type lists used by FindBookDuplicatesDialog (4 options – 'ignore' is replaced
+# by selecting the empty '-- None --' option in the field combo boxes)
+FIELD1_MATCH_TYPES = ['identical', 'similar', 'soundex', 'fuzzy']
+FIELD2_MATCH_TYPES = ['identical', 'similar', 'soundex', 'fuzzy']
+
+
+def get_book_dup_search_fields(db):
+    '''
+    Return a list of (field_value, display_label) pairs for the custom field
+    search combo boxes.  The first entry ('', '-- None --') represents
+    "do not use this field".
+    '''
+    fields = [
+        ('', _('-- None --')),
+        ('title', _('Title')),
+        ('authors', _('Authors')),
+        ('publisher', _('Publisher')),
+        ('series', _('Series')),
+        ('tags', _('Tags')),
+        ('languages', _('Languages')),
+        ('rating', _('Rating')),
+        ('pubdate', _('Published')),
+        ('comments', _('Comments')),
+    ]
+    for label in sorted(db.custom_column_label_map.keys()):
+        col = db.custom_column_label_map[label]
+        fields.append(('#' + label, col.get('name', label)))
+    return fields
+
 IDENTIFIER_DESC = _('<b>Book duplicate search</b><br/>'
               '- Find groups of books which have an identical identifier '
               'such as an ISBN, amazon id, goodreads, uri etc.<br/>'
@@ -185,7 +214,7 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
         search_type_group_box.setLayout(search_type_group_box_layout)
         self.search_type_button_group = QButtonGroup(self)
         self.search_type_button_group.buttonClicked.connect(self._search_type_radio_clicked)
-        for row, text in enumerate([_('Title/Author'), _('Binary Compare'), _('Identifier')]):
+        for row, text in enumerate([_('Custom Fields'), _('Binary Compare'), _('Identifier')]):
             rdo = QRadioButton(text, self)
             rdo.row = row
             self.search_type_button_group.addButton(rdo)
@@ -197,16 +226,33 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
         self.identifier_combo = ListComboBox(self, self.identifier_types)
         search_type_group_box_layout.insertWidget(3, self.identifier_combo)
 
+        # Custom field selectors – visible when 'Custom Fields' search type is selected
+        self.custom_fields_group_box = QGroupBox(_('Search Fields'), self)
+        layout.addWidget(self.custom_fields_group_box)
+        custom_fields_inner_layout = QGridLayout()
+        self.custom_fields_group_box.setLayout(custom_fields_inner_layout)
+        custom_fields_inner_layout.addWidget(QLabel(_('Field 1:'), self), 0, 0)
+        custom_fields_inner_layout.addWidget(QLabel(_('Field 2:'), self), 1, 0)
+        self._all_fields = get_book_dup_search_fields(gui.current_db)
+        self._field_values = [v for v, _lbl in self._all_fields]
+        self.field1_combo = QComboBox(self)
+        self.field2_combo = QComboBox(self)
+        for _fv, label in self._all_fields:
+            self.field1_combo.addItem(label)
+            self.field2_combo.addItem(label)
+        custom_fields_inner_layout.addWidget(self.field1_combo, 0, 1)
+        custom_fields_inner_layout.addWidget(self.field2_combo, 1, 1)
+
         match_layout = QHBoxLayout()
         layout.addLayout(match_layout)
 
-        self.title_match_group_box = QGroupBox(_('Title Matching'),self)
+        self.title_match_group_box = QGroupBox(_('Field 1 Matching'),self)
         match_layout.addWidget(self.title_match_group_box)
         title_match_group_box_layout = QGridLayout()
         self.title_match_group_box.setLayout(title_match_group_box_layout)
         self.title_button_group = QButtonGroup(self)
         self.title_button_group.buttonClicked.connect(self._title_radio_clicked)
-        for row, key in enumerate(TITLE_DESCS.keys()):
+        for row, key in enumerate(FIELD1_MATCH_TYPES):
             rdo = QRadioButton(titlecase(key), self)
             rdo.row = row
             self.title_button_group.addButton(rdo)
@@ -221,13 +267,13 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
         self.title_soundex_spin.setRange(1, 99)
         title_match_group_box_layout.addWidget(self.title_soundex_spin, 2, 2, 1, 1, Qt.AlignLeft)
 
-        self.author_match_group_box = QGroupBox(_('Author Matching'), self)
+        self.author_match_group_box = QGroupBox(_('Field 2 Matching'), self)
         match_layout.addWidget(self.author_match_group_box)
         author_match_group_box_layout = QGridLayout()
         self.author_match_group_box.setLayout(author_match_group_box_layout)
         self.author_button_group = QButtonGroup(self)
         self.author_button_group.buttonClicked.connect(self._author_radio_clicked)
-        for row, key in enumerate(AUTHOR_DESCS.keys()):
+        for row, key in enumerate(FIELD2_MATCH_TYPES):
             rdo = QRadioButton(titlecase(key), self)
             rdo.row = row
             self.author_button_group.addButton(rdo)
@@ -290,12 +336,31 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
         self.identifier_combo.populate_combo(self.identifier_type)
         self.title_match = cfg.plugin_prefs.get(cfg.KEY_TITLE_MATCH, 'identical')
         self.author_match  = cfg.plugin_prefs.get(cfg.KEY_AUTHOR_MATCH, 'identical')
+        # Load field selectors; '' means "do not use this field"
+        self.field1 = cfg.plugin_prefs.get(cfg.KEY_FIELD1, 'title')
+        self.field2 = cfg.plugin_prefs.get(cfg.KEY_FIELD2, 'authors')
+        # Legacy migration: 'ignore' for title_match means author-only (field1 unused)
+        if self.title_match == 'ignore':
+            self.field1 = ''
+            self.title_match = 'identical'
+        # Legacy migration: 'ignore' for author_match means field2 was not compared
+        if self.author_match == 'ignore':
+            self.field2 = ''
+            self.author_match = 'identical'
         search_type_idx = SEARCH_TYPES.index(self.search_type)
         self.search_type_button_group.button(search_type_idx).setChecked(True)
-        title_idx = list(TITLE_DESCS.keys()).index(self.title_match)
+        title_idx = FIELD1_MATCH_TYPES.index(self.title_match) if self.title_match in FIELD1_MATCH_TYPES else 0
         self.title_button_group.button(title_idx).setChecked(True)
-        author_idx = list(AUTHOR_DESCS.keys()).index(self.author_match)
+        author_idx = FIELD2_MATCH_TYPES.index(self.author_match) if self.author_match in FIELD2_MATCH_TYPES else 0
         self.author_button_group.button(author_idx).setChecked(True)
+        # Set field combo selections (without signals connected yet, so no premature updates)
+        f1_idx = self._field_values.index(self.field1) if self.field1 in self._field_values else self._field_values.index('title')
+        self.field1_combo.setCurrentIndex(f1_idx)
+        f2_idx = self._field_values.index(self.field2) if self.field2 in self._field_values else self._field_values.index('authors')
+        self.field2_combo.setCurrentIndex(f2_idx)
+        # Now attach combo signals so subsequent user changes are tracked
+        self.field1_combo.currentIndexChanged.connect(self._field1_changed)
+        self.field2_combo.currentIndexChanged.connect(self._field2_changed)
         self._update_description()
 
         self.title_soundex_spin.setValue(cfg.plugin_prefs.get(cfg.KEY_TITLE_SOUNDEX, 6))
@@ -323,56 +388,97 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
 
     def _title_radio_clicked(self, button):
         idx = button.row
-        self.title_match = list(TITLE_DESCS.keys())[idx]
+        self.title_match = FIELD1_MATCH_TYPES[idx]
         self._update_description()
 
     def _author_radio_clicked(self, button):
         idx = button.row
-        self.author_match = list(AUTHOR_DESCS.keys())[idx]
+        self.author_match = FIELD2_MATCH_TYPES[idx]
         self._update_description()
 
+    def _field1_changed(self, idx):
+        self.field1 = self._field_values[idx]
+        self._update_description()
+
+    def _field2_changed(self, idx):
+        self.field2 = self._field_values[idx]
+        self._update_description()
+
+    def _get_field_label(self, field_value):
+        '''Return display label for a field value string.'''
+        for v, lbl in self._all_fields:
+            if v == field_value:
+                return lbl
+        return field_value.lstrip('#') if field_value else _('(None)')
+
     def _update_description(self):
-        if self.search_type == 'titleauthor':
-            self._enable_title_author_options(enabled=True)
-            desc = TITLE_DESCS[self.title_match].format(AUTHOR_DESCS[self.author_match])
+        is_custom = (self.search_type == 'titleauthor')
+        self._update_custom_field_options(enabled=is_custom)
+        if is_custom:
+            use_f1 = bool(self.field1)
+            use_f2 = bool(self.field2)
+            if use_f1 and use_f2:
+                f1_label = self._get_field_label(self.field1)
+                f2_label = self._get_field_label(self.field2)
+                desc = _('<b>Custom field duplicate search</b><br/>'
+                         '- Find groups of books with a <b>{0} {1}</b> and <b>{2} {3}</b>.<br/>'
+                         '- Marking a group as exempt will prevent those specific books '
+                         'from appearing together in future duplicate book searches.').format(
+                         self.title_match, f1_label, self.author_match, f2_label)
+            elif use_f1:
+                f1_label = self._get_field_label(self.field1)
+                desc = _('<b>Custom field duplicate search</b><br/>'
+                         '- Find groups of books with a <b>{0} {1}</b>.<br/>'
+                         '- Marking a group as exempt will prevent those specific books '
+                         'from appearing together in future duplicate book searches.').format(
+                         self.title_match, f1_label)
+            elif use_f2:
+                f2_label = self._get_field_label(self.field2)
+                desc = _('<b>Custom field duplicate search</b><br/>'
+                         '- Find groups of books with a <b>{0} {1}</b>.<br/>'
+                         '- Marking a group as exempt will prevent those specific books '
+                         'from appearing together in future duplicate author searches.').format(
+                         self.author_match, f2_label)
+            else:
+                desc = _('<b>Custom field duplicate search</b><br/>'
+                         '- Please select at least one field to compare.')
         else:
-            self._enable_title_author_options(enabled=False)
             if self.search_type == 'identifier':
                 desc = IDENTIFIER_DESC
-            else: # self.search_type == 'binary':
+            else:
                 desc = BINARY_DESC
         self.description.setText(desc)
 
-    def _enable_title_author_options(self, enabled):
-        self.title_match_group_box.setVisible(enabled)
-        self.author_match_group_box.setVisible(enabled)
+    def _update_custom_field_options(self, enabled):
+        use_f1 = enabled and bool(self.field1)
+        use_f2 = enabled and bool(self.field2)
+        self.custom_fields_group_box.setVisible(enabled)
+        self.title_match_group_box.setVisible(use_f1)
+        self.author_match_group_box.setVisible(use_f2)
         for btn in self.title_button_group.buttons():
-            btn.setEnabled(enabled)
+            btn.setEnabled(use_f1)
         for btn in self.author_button_group.buttons():
-            btn.setEnabled(enabled)
-        self.title_soundex_label.setEnabled(enabled)
-        self.title_soundex_spin.setEnabled(enabled)
-        self.author_soundex_label.setEnabled(enabled)
-        self.author_soundex_spin.setEnabled(enabled)
-        if enabled:
-            self.title_button_group.button(4).setEnabled(self.author_match != 'ignore')
-            self.author_button_group.button(4).setEnabled(self.title_match != 'ignore')
-            # Do not allow a combination of Ignore Title, Identical Author
-            ident_auth_btn = self.author_button_group.button(0)
-            ident_auth_btn.setEnabled(self.title_match != 'ignore')
-            if not ident_auth_btn.isEnabled() and ident_auth_btn.isChecked():
-                # We have to move the author radio button selection to a valid one
-                self.author_button_group.button(1).setChecked(True)
-                self.author_match = list(AUTHOR_DESCS.keys())[1]
+            btn.setEnabled(use_f2)
+        self.title_soundex_label.setEnabled(use_f1)
+        self.title_soundex_spin.setEnabled(use_f1)
+        self.author_soundex_label.setEnabled(use_f2)
+        self.author_soundex_spin.setEnabled(use_f2)
+        self.include_languages_checkbox.setEnabled(enabled)
+        self.show_tag_author_checkbox.setEnabled(enabled)
 
     def _ok_clicked(self):
         if not self._is_valid_to_continue():
+            if self.search_type == 'identifier':
+                return error_dialog(self.gui, _('Invalid Criteria'),
+                                    _('You must select an identifier type to search by Identifier.'), show=True)
             return error_dialog(self.gui, _('Invalid Criteria'),
-                                _('You must select an identifier type to search by Identifier.'), show=True)
+                                _('You must select at least one field for a custom search.'), show=True)
         cfg.plugin_prefs[cfg.KEY_SEARCH_TYPE] = self.search_type
         cfg.plugin_prefs[cfg.KEY_IDENTIFIER_TYPE] = self.identifier_combo.selected_value()
         cfg.plugin_prefs[cfg.KEY_TITLE_MATCH] = self.title_match
         cfg.plugin_prefs[cfg.KEY_AUTHOR_MATCH] = self.author_match
+        cfg.plugin_prefs[cfg.KEY_FIELD1] = self.field1
+        cfg.plugin_prefs[cfg.KEY_FIELD2] = self.field2
         show_all_groups = self.show_all_button.isChecked()
         cfg.plugin_prefs[cfg.KEY_SHOW_ALL_GROUPS] = show_all_groups
         sort_groups_by_title = not self.sort_numdups_checkbox.isChecked()
@@ -384,11 +490,12 @@ class FindBookDuplicatesDialog(SizePersistedDialog):
         cfg.plugin_prefs[cfg.KEY_INCLUDE_LANGUAGES] = self.include_languages_checkbox.isChecked()
         cfg.plugin_prefs[cfg.KEY_AUTO_DELETE_BINARY_DUPS] = self.auto_delete_binary_dups_checkbox.isChecked()
         self.accept()
-    
+
     def _is_valid_to_continue(self):
         if self.search_type == 'identifier':
-            if self.identifier_combo.selected_value() == '':
-                return False
+            return self.identifier_combo.selected_value() != ''
+        if self.search_type == 'titleauthor':
+            return bool(self.field1) or bool(self.field2)
         return True
 
 
