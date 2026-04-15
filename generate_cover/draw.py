@@ -198,8 +198,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         logo.open(image_path)
         outer_margin = 0 if cover_border_width == 0 else cover_border_width
         logo.size = (width - outer_margin * 2, height - outer_margin * 2)
-        left = top = outer_margin
-        canvas.compose(logo, int(left), int(top))
+        canvas.compose(logo, outer_margin, outer_margin)
 
     top = top_mgn
     if len(top_lines) > 0:
