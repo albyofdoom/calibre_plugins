@@ -57,10 +57,11 @@ class DrawingWand(object):
             setattr(self, k, v)
 
 
-def create_colored_text_wand(line, fill_color, stroke_color):
+def create_colored_text_wand(line, fill_color, stroke_color, apply_border=False, border_width=1):
     return DrawingWand(**{
-        'fill_color': fill_color, 'stroke_color':
-        stroke_color, 'font': line.font, 'align': line._align})
+        'fill_color': fill_color, 'stroke_color': stroke_color,
+        'font': line.font, 'align': line._align,
+        'apply_border': apply_border, 'border_width': border_width})
 
 
 def add_border(img, border_width, border_color, bgcolor):
@@ -123,9 +124,26 @@ def draw_sized_text(img, dw, line, top, left_margin, right_margin,
                     line.text = '*** TEXT TOO LARGE TO AUTO-FIT ***'
                     break
         p.setFont(line.font)
-        br = p.drawText(QRect(
-            int(left_margin), int(top), int(img.size[0] - left_margin - right_margin), int(img.size[1] - top)), 
-            flags | Qt.TextWordWrap, line.text)
+        text_rect = QRect(
+            int(left_margin), int(top),
+            int(img.size[0] - left_margin - right_margin), int(img.size[1] - top))
+        if getattr(dw, 'apply_border', False) and getattr(dw, 'stroke_color', None):
+            border_pen = p.pen()
+            border_pen.setColor(QColor(dw.stroke_color))
+            p.setPen(border_pen)
+            bw = max(1, int(dw.border_width))
+            radius_sq = bw * bw + 1
+            for dx in range(-bw, bw + 1):
+                for dy in range(-bw, bw + 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    if dx * dx + dy * dy <= radius_sq:
+                        p.drawText(text_rect.adjusted(dx, dy, dx, dy),
+                                   flags | Qt.TextWordWrap, line.text)
+            fill_pen = p.pen()
+            fill_pen.setColor(QColor(dw.fill_color))
+            p.setPen(fill_pen)
+        br = p.drawText(text_rect, flags | Qt.TextWordWrap, line.text)
         return br.bottom()
     finally:
         p.end()
@@ -173,11 +191,13 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     right_mgn = min([right_mgn, (width / 2) - 10])
     right_text_margin = right_mgn if right_mgn > 0 else 10
 
+    apply_border = options.get(cfg.KEY_TEXT_BORDER, False)
+    border_width = options.get(cfg.KEY_TEXT_BORDER_WIDTH, 1)
     colors = options[cfg.KEY_COLORS]
     bgcolor, border_color, fill_color, stroke_color = (
         colors['background'], colors['border'], colors['fill'],
         colors['stroke'])
-    if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False):
+    if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False) and not apply_border:
         stroke_color = None
     auto_reduce_font = options.get(cfg.KEY_FONTS_AUTOREDUCED, False)
     borders = options[cfg.KEY_BORDERS]
@@ -203,7 +223,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     top = top_mgn
     if len(top_lines) > 0:
         for line in top_lines:
-            twand = create_colored_text_wand(line, fill_color, stroke_color)
+            twand = create_colored_text_wand(line, fill_color, stroke_color, apply_border, border_width)
             top = draw_sized_text(
                 canvas, twand, line, top, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -216,7 +236,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         footer_height = 0
         for line in bottom_lines:
             line.twand = create_colored_text_wand(
-                line, fill_color, stroke_color)
+                line, fill_color, stroke_color, apply_border, border_width)
             footer_height = draw_sized_text(
                 fake_canvas, line.twand, line, footer_height, left_text_margin,
                 right_text_margin, auto_reduce_font)

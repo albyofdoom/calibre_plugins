@@ -1007,6 +1007,22 @@ class FontsTab(QWidget):
         self.fonts_reduced_checkbox.stateChanged[int].connect(self.changed)
         fonts_layout.addWidget(self.fonts_reduced_checkbox)
 
+        text_border_layout = QHBoxLayout()
+        self.fonts_border_checkbox = QCheckBox(_('Draw border around letters'))
+        self.fonts_border_checkbox.setToolTip(_('When checked, a border is drawn around each letter using the stroke color.'))
+        self.fonts_border_checkbox.stateChanged[int].connect(self.border_checkbox_changed)
+        text_border_layout.addWidget(self.fonts_border_checkbox)
+        text_border_layout.addSpacing(10)
+        self._border_width_label = QLabel(_('Width:'))
+        text_border_layout.addWidget(self._border_width_label)
+        self.fonts_border_width_spin = QSpinBox(self)
+        self.fonts_border_width_spin.setRange(1, 20)
+        self.fonts_border_width_spin.setSingleStep(1)
+        self.fonts_border_width_spin.valueChanged[int].connect(self.changed)
+        text_border_layout.addWidget(self.fonts_border_width_spin)
+        text_border_layout.addStretch()
+        fonts_layout.addLayout(text_border_layout)
+
         main_layout.addSpacing(10)
         colors_groupbox = QGroupBox(_('Colors:'))
         main_layout.addWidget(colors_groupbox)
@@ -1041,8 +1057,6 @@ class FontsTab(QWidget):
         self.apply_stroke_checkbox.setToolTip(_('When checked, stroke color is drawn around text'))
         self.apply_stroke_checkbox.stateChanged[int].connect(self.changed)
         self.apply_stroke_checkbox.setVisible(False)
-        for x in '_color _clearColor _selectColor _tclabel'.split():
-            getattr(self, x + 'Stroke').setVisible(False)
         colors_grid_layout.addWidget(self.apply_stroke_checkbox, row-1, 4, 1, 1)
         main_layout.insertStretch(-1)
 
@@ -1100,6 +1114,9 @@ class FontsTab(QWidget):
             getattr(self, '_fontAuthor').setEnabled(False)
             getattr(self, '_fontSeries').setEnabled(False)
             getattr(self, '_fontCustom').setEnabled(False)
+        self.changed.emit()
+
+    def border_checkbox_changed(self, state):
         self.changed.emit()
 
     def set_other_fonts_linked_to_title_font_combo(self):
@@ -1643,6 +1660,10 @@ class CoverOptionsDialog(SizePersistedDialog):
         getattr(self.fonts_tab, '_fontSeries').setEnabled(not is_fonts_linked)
         self.fonts_tab.fonts_reduced_checkbox.setChecked(self.current.get(cfg.KEY_FONTS_AUTOREDUCED, False))
 
+        is_text_border = self.current.get(cfg.KEY_TEXT_BORDER, False)
+        self.fonts_tab.fonts_border_checkbox.setChecked(is_text_border)
+        self.fonts_tab.fonts_border_width_spin.setValue(self.current.get(cfg.KEY_TEXT_BORDER_WIDTH, 1))
+
         colors = self.current[cfg.KEY_COLORS]
         for name, display_name in DIC_name_color:
             getattr(self.fonts_tab, '_color'+name).setText(colors[name.lower()])
@@ -1727,6 +1748,8 @@ class CoverOptionsDialog(SizePersistedDialog):
         is_fonts_linked = self.fonts_tab.fonts_linked_checkbox.isChecked()
         self.current[cfg.KEY_FONTS_LINKED] = is_fonts_linked
         self.current[cfg.KEY_FONTS_AUTOREDUCED] = self.fonts_tab.fonts_reduced_checkbox.isChecked()
+        self.current[cfg.KEY_TEXT_BORDER] = self.fonts_tab.fonts_border_checkbox.isChecked()
+        self.current[cfg.KEY_TEXT_BORDER_WIDTH] = self.fonts_tab.fonts_border_width_spin.value()
         title_font  = getattr(self.fonts_tab, '_fontTitle').get_value()
         author_font = getattr(self.fonts_tab, '_fontAuthor').get_value()
         series_font = getattr(self.fonts_tab, '_fontSeries').get_value()

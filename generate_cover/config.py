@@ -59,6 +59,8 @@ KEY_COLOR_APPLY_STROKE = 'colorApplyStroke'
 KEY_FONTS = 'fonts'
 KEY_FONTS_LINKED = 'fontsLinked'
 KEY_FONTS_AUTOREDUCED = 'fontsAutoReduced'
+KEY_TEXT_BORDER = 'textBorder'
+KEY_TEXT_BORDER_WIDTH = 'textBorderWidth'
 KEY_FIELD_ORDER = 'fieldOrder'
 KEY_CUSTOM_TEXT = 'customText'
 KEY_SERIES_TEXT = 'seriesText'
@@ -94,6 +96,8 @@ DEFAULT_CURRENT = {
                  'custom': { 'name': None, 'size': 24, 'align': 'center' } },
     KEY_FONTS_LINKED: True,
     KEY_FONTS_AUTOREDUCED: False,
+    KEY_TEXT_BORDER: False,
+    KEY_TEXT_BORDER_WIDTH: 1,
     KEY_FIELD_ORDER: [{'name': 'Title',  'display': True},
                          {'name': 'Author', 'display': True},
                          {'name': 'Series', 'display': True},
