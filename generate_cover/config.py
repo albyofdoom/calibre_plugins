@@ -31,7 +31,7 @@ from calibre_plugins.generate_cover.common_widgets import CustomColumnComboBox
 HELP_URL = 'https://github.com/kiwidude68/calibre_plugins/wiki/Generate-Cover'
 
 STORE_SCHEMA_VERSION = 'SchemaVersion'
-DEFAULT_SCHEMA_VERSION = 2.21
+DEFAULT_SCHEMA_VERSION = 2.22
 
 PREFS_NAMESPACE = 'GenerateCoverPlugin'
 PREFS_KEY_SETTINGS = 'settings'
@@ -90,10 +90,10 @@ DEFAULT_CURRENT = {
     KEY_COLORS: { 'border': '#000000', 'background': '#ffffff',
                      'fill': '#000000', 'stroke': '#000000' },
     KEY_COLOR_APPLY_STROKE: False,
-    KEY_FONTS: { 'title':  { 'name': None, 'size': 46, 'align': 'center' },
-                 'author': { 'name': None, 'size': 36, 'align': 'center' },
-                 'series': { 'name': None, 'size': 36, 'align': 'center' },
-                 'custom': { 'name': None, 'size': 24, 'align': 'center' } },
+    KEY_FONTS: { 'title':  { 'name': None, 'size': 46, 'align': 'center', 'bold': False, 'italic': False },
+                 'author': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False },
+                 'series': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False },
+                 'custom': { 'name': None, 'size': 24, 'align': 'center', 'bold': False, 'italic': False } },
     KEY_FONTS_LINKED: True,
     KEY_FONTS_AUTOREDUCED: False,
     KEY_TEXT_BORDER: False,
@@ -224,6 +224,18 @@ def migrate_config_if_required():
         # Remove the old folder to prevent confusion if it is now empty
         remove_old_images_folder_if_empty()
 
+    # Version 2.2.2 added bold and italic font variations
+    if schema_version < 2.22:
+        if DEBUG:
+            prints('Generate Cover - Upgrading to 2.22 schema')
+        current = plugin_prefs[STORE_CURRENT]
+        plugin_prefs[STORE_CURRENT] = migrate_config_setting(schema_version, STORE_CURRENT, current, is_current=True)
+
+        saved_settings = plugin_prefs[STORE_SAVED_SETTINGS]
+        for setting_name, saved_setting in six.iteritems(saved_settings):
+            migrate_config_setting(schema_version, setting_name, saved_setting)
+        plugin_prefs[STORE_SAVED_SETTINGS] = saved_settings
+
 def migrate_config_setting(schema_version, setting_name, setting, is_current=False):
     # To upgrade to 1.2 we need to add a schema version and
     # ensure that all settings have a 'Custom Text' entry
@@ -288,6 +300,19 @@ def migrate_config_setting(schema_version, setting_name, setting, is_current=Fal
         if DEBUG:
             prints('Generate Cover - Upgrading to 2.21 schema for setting: ',setting_name)
         setting[KEY_IMAGE_FILE] = migrate_image_file(setting[KEY_IMAGE_FILE])
+
+    # Version 2.2.2 added bold and italic font variations
+    if schema_version < 2.22:
+        if DEBUG:
+            prints('Generate Cover - Upgrading to 2.22 schema for setting: ',setting_name)
+        if KEY_FONTS in setting:
+            fonts = setting[KEY_FONTS]
+            for font_key in ['title', 'author', 'series', 'custom']:
+                if font_key in fonts:
+                    if 'bold' not in fonts[font_key]:
+                        fonts[font_key]['bold'] = False
+                    if 'italic' not in fonts[font_key]:
+                        fonts[font_key]['italic'] = False
     return setting
 
 

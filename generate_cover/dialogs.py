@@ -991,6 +991,18 @@ class FontsTab(QWidget):
             # Create the toolbutton menu for alignment
             align_btn = self._create_align_button(name)
             fonts_grid_layout.addWidget(align_btn, row, 4, 1, 1)
+            # Create bold checkbox
+            bold_checkbox = QCheckBox(_('Bold'), self)
+            bold_checkbox.setToolTip(_('Make this text bold'))
+            bold_checkbox.stateChanged[int].connect(self.changed)
+            setattr(self, '_fontBold' + name, bold_checkbox)
+            fonts_grid_layout.addWidget(bold_checkbox, row, 5, 1, 1)
+            # Create italic checkbox
+            italic_checkbox = QCheckBox(_('Italic'), self)
+            italic_checkbox.setToolTip(_('Make this text italic'))
+            italic_checkbox.stateChanged[int].connect(self.changed)
+            setattr(self, '_fontItalic' + name, italic_checkbox)
+            fonts_grid_layout.addWidget(italic_checkbox, row, 6, 1, 1)
             row += 1
 
         self.fonts_linked_checkbox = QCheckBox(_('Use the same font family for all text'))
@@ -1653,6 +1665,9 @@ class CoverOptionsDialog(SizePersistedDialog):
             getattr(self.fonts_tab, '_fontSize'+name).setValue(fonts[name.lower()]['size'])
             button = getattr(self.fonts_tab, '_fontAlign'+name)
             self.fonts_tab.change_alignment(button, name, fonts[name.lower()]['align'])
+            # Load bold and italic settings
+            getattr(self.fonts_tab, '_fontBold'+name).setChecked(fonts[name.lower()].get('bold', False))
+            getattr(self.fonts_tab, '_fontItalic'+name).setChecked(fonts[name.lower()].get('italic', False))
 
         is_fonts_linked = self.current.get(cfg.KEY_FONTS_LINKED, False)
         self.fonts_tab.fonts_linked_checkbox.setChecked(is_fonts_linked)
@@ -1762,11 +1777,19 @@ class CoverOptionsDialog(SizePersistedDialog):
         author_align = unicode(getattr(self.fonts_tab, '_fontAlignValueAuthor')).strip()
         series_align = unicode(getattr(self.fonts_tab, '_fontAlignValueSeries')).strip()
         custom_align = unicode(getattr(self.fonts_tab, '_fontAlignValueCustom')).strip()
+        title_bold  = getattr(self.fonts_tab, '_fontBoldTitle').isChecked()
+        author_bold = getattr(self.fonts_tab, '_fontBoldAuthor').isChecked()
+        series_bold = getattr(self.fonts_tab, '_fontBoldSeries').isChecked()
+        custom_bold = getattr(self.fonts_tab, '_fontBoldCustom').isChecked()
+        title_italic  = getattr(self.fonts_tab, '_fontItalicTitle').isChecked()
+        author_italic = getattr(self.fonts_tab, '_fontItalicAuthor').isChecked()
+        series_italic = getattr(self.fonts_tab, '_fontItalicSeries').isChecked()
+        custom_italic = getattr(self.fonts_tab, '_fontItalicCustom').isChecked()
         self.current[cfg.KEY_FONTS] = {
-                    'title':  { 'name': title_font,  'size': title_size,  'align': title_align },
-                    'author': { 'name': author_font, 'size': author_size, 'align': author_align },
-                    'series': { 'name': series_font, 'size': series_size, 'align': series_align },
-                    'custom': { 'name': custom_font, 'size': custom_size, 'align': custom_align } }
+                    'title':  { 'name': title_font,  'size': title_size,  'align': title_align,  'bold': title_bold,  'italic': title_italic },
+                    'author': { 'name': author_font, 'size': author_size, 'align': author_align, 'bold': author_bold, 'italic': author_italic },
+                    'series': { 'name': series_font, 'size': series_size, 'align': series_align, 'bold': series_bold, 'italic': series_italic },
+                    'custom': { 'name': custom_font, 'size': custom_size, 'align': custom_align, 'bold': custom_bold, 'italic': custom_italic } }
         cfg.plugin_prefs[cfg.STORE_CURRENT] = self.current
 
     def options_changed(self):

@@ -32,7 +32,7 @@ def swap_author_names(author):
 class TextLine(object):
 
     def __init__(self, text, font_name, font_size,
-                 bottom_margin=30, align='center'):
+                 bottom_margin=30, align='center', bold=False, italic=False):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
         try:
@@ -41,13 +41,18 @@ class TextLine(object):
             from PyQt5.Qt import QFont, Qt
         self.font = QFont(font_name) if font_name else QFont()
         self.font.setPixelSize(font_size)
+        if bold:
+            self.font.setBold(True)
+        if italic:
+            self.font.setItalic(True)
         self._align = {'center': Qt.AlignHCenter,
                        'left': Qt.AlignLeft, 'right': Qt.AlignRight}[align]
 
 
 def get_textline(text, font_info, margin):
     return TextLine(text, font_info['name'], font_info['size'], margin,
-                    align=font_info['align'])
+                    align=font_info['align'], bold=font_info.get('bold', False),
+                    italic=font_info.get('italic', False))
 
 
 class DrawingWand(object):
