@@ -32,6 +32,7 @@ HELP_URL = 'https://github.com/kiwidude68/calibre_plugins/wiki/Generate-Cover'
 
 STORE_SCHEMA_VERSION = 'SchemaVersion'
 DEFAULT_SCHEMA_VERSION = 2.22
+DEFAULT_SCHEMA_VERSION = 2.22
 
 PREFS_NAMESPACE = 'GenerateCoverPlugin'
 PREFS_KEY_SETTINGS = 'settings'
@@ -55,7 +56,7 @@ KEY_SIZE = 'size'
 KEY_MARGINS = 'margins'
 KEY_BORDERS = 'borders'
 KEY_COLORS = 'colors'
-KEY_COLOR_APPLY_STROKE = 'colorApplyStroke'
+KEY_FILL_COLORS_LINKED = 'fillColorsLinked'
 KEY_FONTS = 'fonts'
 KEY_FONTS_LINKED = 'fontsLinked'
 KEY_FONTS_AUTOREDUCED = 'fontsAutoReduced'

@@ -1188,7 +1188,7 @@ class CalibreDbHelper(object):
 
         elif typ == 'rating':
             for book in goodreads_books:
-                debug_print("_apply_custom_column_changes_to_books: book=", book )
+                debug_print("_apply_custom_column_changes_to_books: book=%s, value=%s"%(book, value))
                 if not (value in book):
                     continue
                 calibre_id = book['calibre_id']
@@ -1212,11 +1212,15 @@ class CalibreDbHelper(object):
                 calibre_id = book['calibre_id']
                 existing_value = self.db.get_custom(calibre_id, label=label, index_is_id=True)
                 if action == 'ADD':
+                    debug_print("_apply_custom_column_changes_to_books: %s - value=%s, existing_value=%s" % (typ, value, existing_value) )
                     if value == 'none':
                         new_value = 0.
                     else:
-                        new_value = book[value]
-                        new_value = float(new_value)
+                        # This function can get called in one of two ways. Either value is a key in the book map to get the value from 
+                        # or it is a fixed value from the rule. Attempt to see if it is in the book map, if not then treat it as a fixed value.
+                        if value in book:
+                            value = book[value]
+                        new_value = float(value)
                 elif action == 'REMOVE':
                     new_value = 0 # Value for any REMOVE action
                 if new_value != existing_value:

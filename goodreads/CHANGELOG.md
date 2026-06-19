@@ -1,9 +1,26 @@
 # Goodreads Change Log
 
+## [1.9.1] - 2026-06-14
+### Fixed
+- Retrieve book detail pages through the `.xml` URL variant, which returns the
+  full metadata page while the extensionless URL is blocked by AWS WAF.
+
+## [1.9.0] - 2026-05-17
+### Fixed
+- Bypass AWS WAF protection preventing search results from being returned (not publicly released)
+
+## [1.8.5] - 2026-05-07
+### Added
+- Korean translation
+- Swedish translation
+
+### Fixed
+- Get ASIN option now only accepts valid Kindle ASIN starting with B0/10 chars long, not all ISBN-10 values
+
 ## [1.8.4] - 2026-02-09
 ### Added
 - Arabic translation
-- 
+
 ## [1.8.3] - 2025-04-18
 ### Fixed
 - Fix Get ASIN option so turning it off will no longer retrieve the Amazon identifier.

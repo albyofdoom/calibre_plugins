@@ -3,152 +3,152 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 # 
 # Translators:
-# Pk11 <epicpkmn11@outlook.com>, 2022
-# akihiko tanae (tanaeakihiko), 2026
+# Junghee Lee <daemul72@gmail.com>, 2026
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2024-03-24 17:59+1000\n"
 "PO-Revision-Date: 2022-09-07 15:49+0000\n"
-"Last-Translator: akihiko tanae (tanaeakihiko), 2026\n"
-"Language-Team: Japanese (https://app.transifex.com/calibre/teams/19337/ja/)\n"
+"Last-Translator: Junghee Lee <daemul72@gmail.com>, 2026\n"
+"Language-Team: Korean (https://app.transifex.com/calibre/teams/19337/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
-"Language: ja\n"
+"Language: ko\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #: ..\common\common_dialogs.py:84
 msgid "Keyboard shortcuts"
-msgstr "キーボードショートカット"
+msgstr "키보드 단축키"
 
 #: ..\common\common_dialogs.py:112
 msgid "Restart calibre now"
-msgstr "今すぐcalibreを再起動します"
+msgstr "지금 calibre 재시작"
 
 #: ..\common\common_dialogs.py:128
 msgid "Preferences for:"
-msgstr "環境設定:"
+msgstr "다음 플러그인 환경 설정:"
 
 #: ..\common\common_dialogs.py:160
 msgid "Clear"
-msgstr "クリア"
+msgstr "지우기"
 
 #: ..\common\common_dialogs.py:162
 msgid "Clear all settings for this plugin"
-msgstr "プラグインの全ての設定をクリアします"
+msgstr "이 플러그인에 대한 모든 설정 지우기"
 
 #: ..\common\common_dialogs.py:189
 msgid ""
 "Are you sure you want to change your settings in this library for this "
 "plugin?"
-msgstr "本プラグインによりこのライブラリ内の設定を変更して良いですか？"
+msgstr "이 서재에서 이 플러그인의 설정을 변경하시겠습니까?"
 
 #: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
 msgid ""
 "Any settings in other libraries or stored in a JSON file in your calibre "
 "plugins folder will not be touched."
-msgstr "他のライブラリにどれかまたはcalibreプラグインのフォルダにJSONファイルに保存された設定は変更されていません。"
+msgstr "다른 서재의 설정이나 calibre 플러그인 폴더의 JSON 파일에 저장된 설정은 변경되지 않습니다."
 
 #: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
 msgid "You must restart calibre afterwards."
-msgstr "あとでcalibreを再起動が必要です。"
+msgstr "이후 calibre를 다시 시작해야 합니다."
 
 #: ..\common\common_dialogs.py:200
 msgid "Settings changed"
-msgstr "設定が変更されました。"
+msgstr "설정 변경됨"
 
 #: ..\common\common_dialogs.py:201
 msgid "Settings for this plugin in this library have been changed."
-msgstr "本プラグインの設定が変更されました。"
+msgstr "이 서재에서 이 플러그인의 설정이 변경되었습니다."
 
 #: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
 msgid "Please restart calibre now."
-msgstr "今すぐcalibreを再起動してください。"
+msgstr "지금 calibre를 다시 시작하세요."
 
 #: ..\common\common_dialogs.py:209
 msgid ""
 "Are you sure you want to clear your settings in this library for this "
 "plugin?"
-msgstr "このライブラリにのこのプラグインの設定をクリアしてもよろしいですか？"
+msgstr "이 서재에서 이 플러그인의 설정을 지우시겠습니까?"
 
 #: ..\common\common_dialogs.py:221
 msgid "Settings deleted"
-msgstr "設定は削除されました。"
+msgstr "설정 삭제됨"
 
 #: ..\common\common_dialogs.py:222
 msgid "All settings for this plugin in this library have been cleared."
-msgstr "このライブラリにこのプラグインの全ての設定はクリアされました。"
+msgstr "이 서재에서 이 플러그인의 모든 설정이 지워졌습니다."
 
 #: ..\common\common_dialogs.py:297
 msgid "Copy to clipboard"
-msgstr "クリップボードにコピー"
+msgstr "클립보드에 복사"
 
 #: ..\common\common_widgets.py:105
 msgid "Undefined"
-msgstr "未定義"
+msgstr "정의되지 않음"
 
 #: ..\common\common_widgets.py:160
 msgid "Restart required"
-msgstr "再起動が必要です。"
+msgstr "다시 시작 필요"
 
 #: ..\common\common_widgets.py:161
 msgid ""
 "Title image not found - you must restart Calibre before using this plugin!"
-msgstr "タイトル画像が見つかりません。本プラグインを使用する前にcalibreを再起動してください。"
+msgstr "제목 이미지를 찾을 수 없습니다. 이 플러그인을 사용하려면 calibre를 다시 시작해야 합니다!"
 
 #: ..\common\common_widgets.py:234
 msgid "Create new column"
-msgstr "新しい列を作成"
+msgstr "새 열 만들기"
 
 #: config.py:154
 msgid "Goodreads Genre"
-msgstr "Goodreadsジャンル"
+msgstr "Goodreads 장르"
 
 #: config.py:154
 msgid "Maps to Calibre Tag"
-msgstr "calibreタグにマッピング"
+msgstr "calibre 태그에 매핑"
 
 #: config.py:223
 msgid "Goodreads genre to calibre tag mappings"
-msgstr "Goodreadsジャンルからcalibreタグにマッピング"
+msgstr "Goodreads 장르를 calibre 태그에 매핑"
 
 #: config.py:228
 msgid "Filter and map genres to calibre tags"
-msgstr "ジャンルをフィルタリングしてcalibreタグにマッピング"
+msgstr "장르를 필터링하여 calibre 태그에 매핑"
 
 #: config.py:229
 msgid ""
 "When checked, only specific calibre tags will be used as per below.\n"
 "When unchecked, all Goodreads genres will be added as tags."
 msgstr ""
-"チェックすると、以下に示す特定のレベルのタグのみが使用されます。チェックを外すと、Goodreads のすべてのジャンルがタグとして追加されます。"
+"이 옵션을 선택하면 아래에 지정한 calibre 태그만 사용합니다.\n"
+"선택하지 않으면 모든 Goodreads 장르가 태그로 추가됩니다."
 
 #: config.py:242
 msgid "Add genre mapping"
-msgstr "ジャンルのマッピングを追加します"
+msgstr "장르 매핑 추가"
 
 #: config.py:249
 msgid "Delete genre mapping"
-msgstr "ジャンルのマッピングを削除します"
+msgstr "장르 매핑 삭제"
 
 #: config.py:256
 msgid "Rename Goodreads genre"
-msgstr "Goodreadsジャンルの名前を変更します"
+msgstr "Goodreads 장르 이름 바꾸기"
 
 #: config.py:263
 msgid "Reset to plugin default mappings"
-msgstr "プラグインのデフォルトマッピングにリセットします"
+msgstr "플러그인 기본 매핑으로 재설정"
 
 #: config.py:269
 msgid "Other options"
-msgstr "他の設定"
+msgstr "기타 옵션"
 
 #: config.py:274
 msgid "Scan multiple editions for title/author searches (slower)"
-msgstr "タイトル・著者の検索で複数のエディションをスキャンします（遅い）"
+msgstr "제목/저자 검색 시 여러 판본 검사(느림)"
 
 #: config.py:275
 msgid ""
@@ -156,13 +156,13 @@ msgid ""
 "Goodreads editions (if available) to exclude audiobook editions.\n"
 "When unchecked you will get a faster search but the edition is indeterminate."
 msgstr ""
-"チェックすると、追加検索して上位ランキングをスキャンします。\n"
-"Goodreadsエディション(あり場合)でオーディオブックを除きます。\n"
-"チェック解除すると、検索がもっと早いが、エディションが不明です。"
+"이 옵션을 선택하면 상위 Goodreads 판본(있는 경우)을 추가로 검색하여\n"
+"오디오북 판본을 제외합니다.\n"
+"선택하지 않으면 검색은 더 빨라지지만 판본은 특정되지 않습니다."
 
 #: config.py:281
 msgid "Get all contributing authors (e.g. illustrators, series editors etc)"
-msgstr "全ての貢献する著者を取得します（例：イラストレーター、シリーズのエディターなど）"
+msgstr "기여 저자 모두 가져오기(예: 일러스트레이터, 시리즈 편집자 등)"
 
 #: config.py:282
 msgid ""
@@ -170,13 +170,13 @@ msgid ""
 "\n"
 "When unchecked (default) only the primary author(s) are returned."
 msgstr ""
-"これをチェックすると、全ての著者が取得されます。\n"
+"이 옵션을 선택하면 모든 저자 정보를 가져옵니다.\n"
 "\n"
-"チェック解除する(デフォルト)と、主な著者のみが取得されます。"
+"선택하지 않으면(기본값) 주 저자만 가져옵니다."
 
 #: config.py:287
 msgid "Get ASIN for kindle editions"
-msgstr "KindleエディションでASINを取得します"
+msgstr "Kindle 판본의 ASIN 가져오기"
 
 #: config.py:288
 msgid ""
@@ -184,70 +184,67 @@ msgid ""
 "instead of an ISBN, the ASIN is retrieved. This is useful for books that\n"
 "already have the specific Goodreads identifier of a Kindle editon."
 msgstr ""
-"これをチェックすると、GoodreadsがISBNの代わりにASINが\n"
-"あります場合にASINが取得されます。\n"
-"KindleエディションのGoodreads識別子が既にあります場合に便利です。"
+"이 옵션을 선택하면 Goodreads에 ISBN 대신 ASIN이 등록된 경우\n"
+"ASIN을 가져옵니다. 이미 Kindle 판본용 Goodreads 식별자를 가진 책에 유용합니다."
 
 #: config.py:294
 msgid "Use first published date"
-msgstr "最初の発行日を使用します"
+msgstr "초판 발행일 사용"
 
 #: config.py:295
 msgid ""
 "If checked, the first published date for this book is used rather than\n"
 "that of the actual book edition."
-msgstr ""
-"チェックすると、本の実際のエディションの発行日の代わりに\n"
-"最初の発行日を使用されます。"
+msgstr "이 옵션을 선택하면 실제 판본의 발행일 대신 이 책의 초판 발행일을 사용합니다."
 
 #: config.py:300
 msgid "Get precise rating into 'grrating' identifier"
-msgstr "'grating' 識別子に正確な評価値を取得"
+msgstr "'grrating' 식별자에 정밀 평점 저장"
 
 #: config.py:301
 msgid ""
 "If checked, pulls precise rating (e.g. 3.78) into an identifier\n"
 "you can display as a custom column."
-msgstr "チェックすると、正確な評価値（例: 3.78）が識別子に取り込まれ、カスタム列として表示できます。"
+msgstr "이 옵션을 선택하면 정밀 평점(예: 3.78)을 사용자 지정 열에 표시할 수 있는 식별자에 저장합니다."
 
 #: config.py:306
 msgid "Get #votes for rating into 'grvotes' identifier"
-msgstr "評価に対する投票数を 'grvotes' 識別子に登録"
+msgstr "'grvotes' 식별자에 평점 투표 수 저장"
 
 #: config.py:307
 msgid ""
 "If checked, pulls number of votes producing this rating into an identifier\n"
 "you can display as a custom column."
-msgstr "チェックすると、この評価を生成した投票数を識別子に取得し、カスタム列として表示できます。"
+msgstr "이 옵션을 선택하면 이 평점을 만든 투표 수를 사용자 지정 열에 표시할 수 있는 식별자에 저장합니다."
 
 #: config.py:328 config.py:359
 msgid "Add new mapping"
-msgstr "新しいマッピングを追加します"
+msgstr "새 매핑 추가"
 
 #: config.py:329 config.py:360
 msgid "Enter a Goodreads genre name to create a mapping for:"
-msgstr "Goodreadsジャンルでマッピングを作成する名前を入力してください。"
+msgstr "매핑을 만들 Goodreads 장르 이름을 입력:"
 
 #: config.py:340
 msgid "Add Failed"
-msgstr "追加に失敗しました"
+msgstr "추가 실패"
 
 #: config.py:340 config.py:372
 msgid "A genre with the same name already exists"
-msgstr "同名のジャンルが既にあります"
+msgstr "같은 이름의 장르가 이미 있습니다"
 
 #: config.py:348 config.py:379
 msgid "Are you sure?"
-msgstr "本当によろしいですか？"
+msgstr "계속하시겠습니까?"
 
 #: config.py:349
 msgid "Are you sure you want to delete the selected genre mappings?"
-msgstr "選択されたジャンルマッピングを削除するもよろしいですか？"
+msgstr "선택한 장르 매핑을 삭제하시겠습니까?"
 
 #: config.py:372
 msgid "Rename Failed"
-msgstr "名前を変更に失敗しました"
+msgstr "이름 바꾸기 실패"
 
 #: config.py:380
 msgid "Are you sure you want to reset to the plugin default genre mappings?"
-msgstr "プラグインのデフォルトマッピングにリセットするもよろしいですか？"
+msgstr "플러그인 기본 장르 매핑으로 재설정하시겠습니까?"

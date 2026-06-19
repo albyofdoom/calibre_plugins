@@ -35,6 +35,7 @@ class TextLine(object):
                  bottom_margin=30, align='center', bold=False, italic=False):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
+        self.fill_color = fill_color
         try:
             from qt.core import QFont, Qt
         except ImportError:
@@ -49,7 +50,7 @@ class TextLine(object):
                        'left': Qt.AlignLeft, 'right': Qt.AlignRight}[align]
 
 
-def get_textline(text, font_info, margin):
+def get_textline(text, font_info, margin, fill_color='#000000'):
     return TextLine(text, font_info['name'], font_info['size'], margin,
                     align=font_info['align'], bold=font_info.get('bold', False),
                     italic=font_info.get('italic', False))

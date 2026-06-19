@@ -447,6 +447,9 @@ class Worker(Thread): # Get details
             details_json = book_json["details"]
             if "asin" in details_json:
                 asin = details_json["asin"]
+                # ASIN must start with B0 followed by 8 alphanumeric characters. If not valid, discard it.
+                if asin and not re.match(r'^B0[A-Z0-9]{8}$', asin):
+                    asin = None                
         self.log.info("parse_asin: ", asin)
         return asin
 
