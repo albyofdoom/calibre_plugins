@@ -296,33 +296,26 @@ def generate_cover_for_book(mi, options=None, db=None):
             custom_text, mi, 'GC template error', mi).replace('<br/>','\n')
 
     fonts = options[cfg.KEY_FONTS]
-    margin = options[cfg.KEY_MARGINS]['text']
-    colors = options[cfg.KEY_COLORS]
-    use_same_fill_color = options.get(cfg.KEY_FILL_COLORS_LINKED, True)
-    
-    # Determine fill colors for each text type
-    title_fill = colors.get('title_fill', '#000000')
-    if use_same_fill_color:
-        author_fill = series_fill = custom_fill = title_fill
-    else:
-        author_fill = colors.get('author_fill', title_fill)
-        series_fill = colors.get('series_fill', title_fill)
-        custom_fill = colors.get('custom_fill', title_fill)
-    
+    text_padding = options.get(cfg.KEY_TEXT_PADDING, {})
+    default_margin = options[cfg.KEY_MARGINS].get('text', 30)
+
+    def get_field_margin(field_name):
+        return text_padding.get(field_name, default_margin)
+
     content_lines = {}
     content_lines['Title'] = [
-        get_textline(title_line.strip(), fonts['title'], margin, title_fill)
+        get_textline(title_line.strip(), fonts['title'], get_field_margin('Title'))
         for title_line in split_and_replace_newlines(title)]
     content_lines['Author'] = [
-        get_textline(author_line.strip(), fonts['author'], margin, author_fill)
+        get_textline(author_line.strip(), fonts['author'], get_field_margin('Author'))
         for author_line in split_and_replace_newlines(author_string)]
     if series_string:
         content_lines['Series'] = [
-            get_textline(series_line.strip(), fonts['series'], margin, series_fill)
+            get_textline(series_line.strip(), fonts['series'], get_field_margin('Series'))
             for series_line in split_and_replace_newlines(series_string)]
     if custom_text:
         content_lines['Custom Text'] = [
-            get_textline(ct.strip(), fonts['custom'], margin, custom_fill)
+            get_textline(ct.strip(), fonts['custom'], get_field_margin('Custom Text'))
             for ct in split_and_replace_newlines(custom_text)]
     top_lines = []
     bottom_lines = []
