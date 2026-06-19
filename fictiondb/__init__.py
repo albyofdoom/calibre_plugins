@@ -26,7 +26,7 @@ class FictionDB(Source):
     name                    = 'FictionDB'
     description             = 'Downloads metadata and covers from fictiondb.com'
     author                  = 'Grant Drake'
-    version                 = (1, 4, 2)
+    version                 = (1, 4, 3)
     minimum_calibre_version = (2, 85, 1)
 
     ID_NAME = 'fictiondb'
@@ -57,7 +57,7 @@ class FictionDB(Source):
                     '%s/title/%s.htm'%(self.BASE_URL, fictiondb_id))
 
     def id_from_url(self, url):
-        match = re.match(self.BASE_URL + "/title/(.*)\.htm.*", url)
+        match = re.match(self.BASE_URL + "/title/(.*)\\.htm.*", url)
         if match:
             return (self.ID_NAME, match.groups(0)[0])
         return None

@@ -24,9 +24,10 @@ try:
 except NameError:
     pass # load_translations() added in calibre 1.9
 
+from lxml import etree
+
 from calibre.constants import DEBUG
 from calibre.ebooks.metadata import fmt_sidx, authors_to_string, check_isbn
-from calibre.ebooks.oeb.parse_utils import RECOVER_PARSER
 from calibre.gui2 import error_dialog, open_url
 from calibre.utils.config import tweaks
 from calibre.utils.cleantext import clean_ascii_chars
@@ -38,6 +39,8 @@ from calibre.devices.usbms.driver import debug_print
 import calibre_plugins.goodreads_sync.oauth2 as oauth
 import calibre_plugins.goodreads_sync.httplib2 as httplib2
 import calibre_plugins.goodreads_sync.config as cfg
+
+RECOVER_PARSER = etree.XMLParser(recover=True, no_network=True, resolve_entities=False)
 
 def get_searchable_author(authors):
     # Take the authors displayed and convert it into a search string we can
@@ -164,17 +167,17 @@ class HttpHelper(object):
         # Perform a standard http request (OAUTH not required)
         # Set suppress_status for an invalid response code that you do not want to prompt
         # the user about.
-        debug_print('_request_get: url=%s' % url)
         try:
             if self.gui:
                 self.gui.status_bar.showMessage('Communicating with Goodreads...')
 
             if add_devkey:
                 url = url + '&key=%s' % self.devkey_token
-                debug_print('_request_get: url=%s' % url)
+            debug_print('_request_get: url=%s' % url)
             h = httplib2.Http(proxy_info=self.proxy_info, ca_certs=None, disable_ssl_certificate_validation=True)
             response, content = h.request(url, method='GET')
             status = response['status']
+            debug_print('_request_get: response status = ',status, 'suppress=', suppress_status)
             if status != success_status and status != suppress_status:
                 return self._handle_failure(response, content, url)
             if encoding:
@@ -191,7 +194,8 @@ class HttpHelper(object):
             debug_print('Content: %s' % content)
             #traceback.print_stack()
         detail = 'URL: {0}\nResponse Code: {1}\n{2}'.format(url, response['status'], content)
-        if (response['status'] == '404'):
+
+        try:
             root = et.fromstring(content)
             errorNode = root.find('error')
             if errorNode:
@@ -203,9 +207,18 @@ class HttpHelper(object):
                                 friendlyMessage,
                                 det_msg=detail, show=True)
                 return (None, None)
+        except:
+            debug_print('Failed to parse content into an error tree: %s' % content)
+            pass
+        
+        if (response['status'] == '404'):
+            error_dialog(self.gui, _('Goodreads Failure'),
+                _('The request contacting Goodreads has failed.') + ' [' + response['status'] + ']\n',
+                det_msg=detail, show=True)
+            return (None, None)
         
         error_dialog(self.gui, _('Goodreads Failure'),
-                    _('The request contacting Goodreads has failed.')+'\n'+
+                    _('The request contacting Goodreads has failed.') + ' [' + response['status'] + ']\n'+
                     _('If it reoccurs you may have exceeded a request limit imposed by Goodreads.')+'\n'+
                     _('In which case wait an additional 5-10 minutes before retrying.'),
                     det_msg=detail, show=True)
@@ -446,8 +459,8 @@ class HttpHelper(object):
                 reviews_node = root.find('reviews')
                 if reviews_node is None:
                     break
-                total = int(reviews_node.attrib.get('total'))
-                end = int(reviews_node.attrib.get('end'))
+                total = int(reviews_node.attrib.get('total', 0))
+                end = int(reviews_node.attrib.get('end', 0))
                 review_nodes = reviews_node.findall('review')
                 for review_node in review_nodes:
                     book = self._convert_review_xml_node_to_book(review_node)
@@ -527,8 +540,8 @@ class HttpHelper(object):
         # Returns None if an error
         # This particular URL has the option of a JSON file result (yay!)
         url = '%s/book/show?format=json&id=%s&page=1' % (cfg.URL_HTTPS, goodreads_id)
-        (response, content) = self._request_get(url)
-        if not response:
+        (response, content) = self._request_get(url, suppress_status='404')
+        if not response or response['status'] == '404':
             return
         content = clean_ascii_chars(content)
         content_json = json.loads(content)
@@ -577,12 +590,14 @@ class HttpHelper(object):
     def _convert_review_xml_node_to_book(self, review_node, include_work=False):
 #         debug_print("HttpHelper::_convert_review_xml_node_to_book - review_node=", tostring(review_node))
         book_node = review_node.find('book')
+        if book_node is None:
+            return None
         book = {}
         goodreads_id = book_node.findtext('id')
         book['goodreads_id'] = goodreads_id
         isbn = book_node.findtext('isbn13')
         book['goodreads_isbn'] = isbn
-        (title, series) = self._convert_goodreads_title_with_series(book_node.findtext('title').strip())
+        (title, series) = self._convert_goodreads_title_with_series((book_node.findtext('title') or '').strip())
         book['goodreads_title'] = title
         book['goodreads_series'] = series
         if book_node.find('authors') is None:
@@ -608,7 +623,7 @@ class HttpHelper(object):
             book['goodreads_date_added'] = self._parse_goodreads_date(review_node.findtext('date_added'))
             book['goodreads_date_updated'] = self._parse_goodreads_date(review_node.findtext('date_updated'))
             #review_text = review_node.findtext('body')
-            book['goodreads_review_text'] = review_node.findtext('body').strip()
+            book['goodreads_review_text'] = (review_node.findtext('body') or '').strip()
             if len(book['goodreads_review_text']) > 0:
                 debug_print("_convert_review_xml_node_to_book: length of review_text=", len(book['goodreads_review_text']))
 #                 debug_print("_convert_review_xml_node_to_book: review_text=", book['goodreads_review_text'])
@@ -678,7 +693,7 @@ class HttpHelper(object):
             root = et.fromstring(content, parser=RECOVER_PARSER)
         if root is None:
             import tempfile
-            cpath = os.path.join(tempfile.tempdir, 'xml_fail.xml')
+            cpath = os.path.join(tempfile.gettempdir(), 'xml_fail.xml')
             f = open(cpath, 'w')
             f.write(content)
             f.close()
@@ -744,7 +759,7 @@ class HttpHelper(object):
                 break
 
             book_url = ''.join(edition_data_node.xpath('div[@class="dataRow"]/a/@href'))
-            goodreads_edition_book['goodreads_id'] = re.search('/book/show/(\d+)', book_url).groups(0)[0]
+            goodreads_edition_book['goodreads_id'] = re.search(r'/book/show/(\d+)', book_url).groups(0)[0]
             goodreads_edition_book['goodreads_title'] = ''.join(edition_data_node.xpath('div[@class="dataRow"]/a[@class="bookTitle"]/text()'))
             cover_url = ''.join(edition_node.xpath('div[@class="leftAlignedImage"]/a/img/@src'))
             if 'nocover' in cover_url:
@@ -755,9 +770,9 @@ class HttpHelper(object):
             isbn_node = edition_data_node.xpath('div[@class="moreDetails hideDetails"]/div[@class="dataRow"][2]/div[@class="dataValue"]/span[@class="greyText"]/text()')
             if len(isbn_node) > 0:
                 isbn = None
-                match_isbn = re.search(': (\d+)', isbn_node[0])
+                match_isbn = re.search(r': (\d+)', isbn_node[0])
                 if not match_isbn:
-                    match_isbn = re.search('(\d+)', isbn_node[0])
+                    match_isbn = re.search(r'(\d+)', isbn_node[0])
                 if match_isbn:
                     isbn = match_isbn.groups(0)[0]
                     if check_isbn(isbn):
@@ -930,6 +945,7 @@ class CalibreSearcher(object):
             book['calibre_author_sort'] = ''
             book['calibre_series'] = ''
             book['calibre_rating'] = 0.
+            book['calibre_rating_allow_half_stars'] = False
             book['calibre_date_read'] = UNDEFINED_DATE
             book['calibre_review_text'] = ''
             book['calibre_reading_progress'] = -1
@@ -946,20 +962,25 @@ class CalibreSearcher(object):
         if mi.series:
             seridx = fmt_sidx(mi.series_index)
             book['calibre_series'] = '%s [%s]' % (mi.series, seridx)
-        self.get_uploadable_columns(mi, book)
+        self.get_uploadable_columns(db, mi, book)
 
         if not 'goodreads_id' in book:
             goodreads_id = self.id_caches.calibre_to_goodreads_ids().get(calibre_id, '')
             book['goodreads_id'] = goodreads_id
         return True
 
-    def get_uploadable_columns(self, mi, book):
+    def get_uploadable_columns(self, db, mi, book):
+        custom_columns = db.field_metadata.custom_field_metadata()
         rating_column = cfg.plugin_prefs[cfg.STORE_PLUGIN].get(cfg.KEY_RATING_COLUMN, '')
         book['calibre_rating'] = 0
+        book['calibre_rating_allow_half_stars'] = False
         if rating_column:
             rating = mi.get(rating_column)
             if rating:
                 book['calibre_rating'] = int(rating)
+            if rating_column.startswith('#') and rating_column in custom_columns:
+                rating_custom_column = custom_columns[rating_column]
+                book['calibre_rating_allow_half_stars'] = rating_custom_column['display'].get('allow_half_stars', False)
 
         date_read_column = cfg.plugin_prefs[cfg.STORE_PLUGIN].get(cfg.KEY_DATE_READ_COLUMN, '')
         book['calibre_date_read'] = UNDEFINED_DATE
@@ -1167,7 +1188,7 @@ class CalibreDbHelper(object):
 
         elif typ == 'rating':
             for book in goodreads_books:
-                debug_print("_apply_custom_column_changes_to_books: book=", book )
+                debug_print("_apply_custom_column_changes_to_books: book=%s, value=%s"%(book, value))
                 if not (value in book):
                     continue
                 calibre_id = book['calibre_id']
@@ -1191,11 +1212,15 @@ class CalibreDbHelper(object):
                 calibre_id = book['calibre_id']
                 existing_value = self.db.get_custom(calibre_id, label=label, index_is_id=True)
                 if action == 'ADD':
+                    debug_print("_apply_custom_column_changes_to_books: %s - value=%s, existing_value=%s" % (typ, value, existing_value) )
                     if value == 'none':
                         new_value = 0.
                     else:
-                        new_value = book[value]
-                        new_value = float(new_value)
+                        # This function can get called in one of two ways. Either value is a key in the book map to get the value from 
+                        # or it is a fixed value from the rule. Attempt to see if it is in the book map, if not then treat it as a fixed value.
+                        if value in book:
+                            value = book[value]
+                        new_value = float(value)
                 elif action == 'REMOVE':
                     new_value = 0 # Value for any REMOVE action
                 if new_value != existing_value:

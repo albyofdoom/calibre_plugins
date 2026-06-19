@@ -1,4 +1,28 @@
 # Search The Internet Change Log
+
+## [1.11.4] - 2026-02-09
+### Added
+- Arabic translation
+
+## [1.11.3] - 2024-09-30
+### Changed
+- Change approach to invoking template engine to use proxy_metadata instead of deepcopy to avoid calibre bug.
+
+## [1.11.2] - 2024-04-01
+### Changed
+- Remove many non-working sites from the default list, switch all to https
+- Do not url encode tokens which contain `identifier`, in order to ensure DOI fields work.
+### Fixed
+- Fix for calibre 7 for QFileDialog errors.
+
+## [1.11.1] - 2024-03-28
+### Changed
+- No longer strip period characters out of the tokenised fields. Users can do this themselves if needed using template expressions e.g. `{author:re(\., )}`
+        
+## [1.11.0] - 2024-03-22
+### Changed
+- URL encoding of template expressions now occurs after evaluating each expression individually. This means that all custom columns should get url encoded and will also not break evaluation of functions like {title:transliterate()}
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
         
 ## [1.10.5] - 2024-03-17
 ### Added

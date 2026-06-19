@@ -51,6 +51,7 @@ KEY_CHECK_ALL_SOURCES = 'checkAllSources'
 KEY_DOWNLOAD_SOURCES = 'downloadSources'
 KEY_SHOW_TRY_ALL_SOURCES = 'showTryAllSources'
 KEY_USE_ICU_WORDCOUNT = 'useIcuWordcount'
+KEY_BATCH_SIZE = 'batchSize'
 
 STORE_NAME = 'Options'
 KEY_PAGES_ALGORITHM = 'algorithmPages'
@@ -62,12 +63,14 @@ PAGE_DOWNLOADS = {
                   'goodreads':
                     {
                      'URL': 'https://www.goodreads.com/book/show/%s',
-                     'pages_xpath': '//div[@class="FeaturedDetails"]/p[@data-testid="pagesFormat"]/text()',
+                     ## goodreads page is now a huge javascript data
+                     ## struct that then constructs the page.
+                     'pages_xpath': '//script[@id="__NEXT_DATA__"]/text()',
                      'name': 'Goodreads',
                      'id': 'goodreads',
                      'icon': 'images/goodreads.png',
                      'active': True,
-                     'pages_regex': '([0-9]+) pages'
+                     'pages_regex': r'"numPages":([0-9]+),'
                     },
                   'lubimyczytac.pl':
                     {
@@ -86,12 +89,12 @@ PAGE_DOWNLOADS = {
                      'id': 'skoob',
                      'icon': 'images/skoob.png',
                      'active': False,
-                     'pages_regex': 'ginas: ([0-9]+)' # First group in match should be the page counts
+                     'pages_regex': r'ginas: ([0-9]+)' # First group in match should be the page counts
                     },
                   'databazeknih.cz':
                     {
                      'URL': 'https://www.databazeknih.cz/book-detail-more-info/%s',
-                     'identifier_regex': '(?:-{0,1})(\d+)$',   # Only want the number at the end of the identifier
+                     'identifier_regex': r'(?:-{0,1})(\d+)$',   # Only want the number at the end of the identifier
                      'pages_xpath': '//span[@itemprop="numberOfPages"]/text()',
                      'name': 'databazeknih.cz',
                      'id': 'databazeknih',
@@ -106,6 +109,15 @@ PAGE_DOWNLOADS = {
                      'id': 'cbdb',
                      'icon': 'images/cbdb.png',
                      'active': False
+                    },
+                  'babelio.com':
+                    {
+                     'URL': 'https://www.babelio.com/livres/%s',
+                     'pages_xpath': '//div[contains(@class,"livre_refs")]/text()[contains(., "pages")]',
+                     'name': 'Babelio.com',
+                     'id': 'babelio_id',
+                     'icon': 'images/babelio.png',
+                     'active': False
                     }
                   }
 
@@ -118,6 +130,7 @@ DOWNLOAD_SOURCES_DEFAULTS = ( # This is an orderer list of tuples
                               ('skoob', False, False),
                               ('databazeknih.cz', False, False),
                               ('cbdb.cz', False, False),
+                              ('babelio.com', False, False),
                              )
 DOWNLOAD_SOURCE_OPTION_STRING = _('Download page/word counts')
 BUTTON_DEFAULTS = {
@@ -137,6 +150,14 @@ ALL_STATISTICS = {
                   STATISTIC_FLESCH_GRADE: KEY_FLESCH_GRADE_CUSTOM_COLUMN,
                   STATISTIC_GUNNING_FOG: KEY_GUNNING_FOG_CUSTOM_COLUMN
                   }
+DISPLAY_STATISTIC_NAMES = {
+                        'Selected': _('Selected Books'),
+                        STATISTIC_PAGE_COUNT: _('Page Count'),
+                        STATISTIC_WORD_COUNT: _('Word Count'),
+                        STATISTIC_FLESCH_READING: _('Flesch Reading Ease'),
+                        STATISTIC_FLESCH_GRADE: _('Flesch-Kincaid Grade Level'),
+                        STATISTIC_GUNNING_FOG: _('Gunning Fog Index')
+                        }
 
 DEFAULT_STORE_VALUES = {
                         KEY_BUTTON_DEFAULT: 'Estimate',
@@ -147,7 +168,8 @@ DEFAULT_STORE_VALUES = {
                         KEY_USE_ICU_WORDCOUNT: True,
                         KEY_CHECK_ALL_SOURCES: True,
                         KEY_SHOW_TRY_ALL_SOURCES: True,
-                        KEY_DOWNLOAD_SOURCES: DOWNLOAD_SOURCES_DEFAULTS
+                        KEY_DOWNLOAD_SOURCES: DOWNLOAD_SOURCES_DEFAULTS,
+                        KEY_BATCH_SIZE: 50
                         }
 DEFAULT_LIBRARY_VALUES = {
                           KEY_PAGES_ALGORITHM: 0,
@@ -276,6 +298,10 @@ class ConfigWidget(QWidget):
         new_prefs[KEY_DOWNLOAD_SOURCES] = self.get_source_list()
         new_prefs[KEY_ASK_FOR_CONFIRMATION] = self.other_tab.ask_for_confirmation_checkbox.isChecked()
         new_prefs[KEY_USE_ICU_WORDCOUNT] = self.statistics_tab.icu_wordcount_checkbox.isChecked()
+        batch_size = unicode(self.other_tab.batch_size_ledit.text()).strip()
+        if not batch_size:
+            batch_size = '50'
+        new_prefs[KEY_BATCH_SIZE] = int(batch_size)
         plugin_prefs[STORE_NAME] = new_prefs
 
         db = self.plugin_action.gui.current_db
@@ -339,6 +365,7 @@ class OtherTab(QWidget):
                 if default_download_source[0] not in download_sources_names:
                     download_sources.append(default_download_source)
         show_try_all_sources = c.get(KEY_SHOW_TRY_ALL_SOURCES, DEFAULT_STORE_VALUES[KEY_SHOW_TRY_ALL_SOURCES])
+        batch_size = c.get(KEY_BATCH_SIZE, DEFAULT_STORE_VALUES[KEY_BATCH_SIZE])
 
         # Fudge the button default to cater for the options no longer supported by plugin as of 1.5
         if button_default in ['Estimate', 'EstimatePage', 'EstimateWord']:
@@ -413,6 +440,16 @@ class OtherTab(QWidget):
         other_group_box_layout.addWidget(button_default_label, 0, 0, 1, 1)
         other_group_box_layout.addWidget(self.button_default_combo, 0, 1, 1, 2)
 
+        self.batch_size_label = QLabel(_('Batch size:'), self)
+        toolTip = _('When calculating statistics for a large number of books,\n'
+                    'the plugin will process the books in batches per calibre job.')
+        self.batch_size_label.setToolTip(toolTip)
+        self.batch_size_ledit = QLineEdit(str(batch_size), self)
+        self.batch_size_ledit.setToolTip(toolTip)
+        self.batch_size_label.setBuddy(self.batch_size_ledit)
+        other_group_box_layout.addWidget(self.batch_size_label, 1, 0, 1, 1)
+        other_group_box_layout.addWidget(self.batch_size_ledit, 1, 1, 1, 2)
+
         self.overwrite_checkbox = QCheckBox(_('Always overwrite an existing word/page count'), self)
         self.overwrite_checkbox.setToolTip(_('Uncheck this option if you have manually populated values in\n'
                                              'either of your page/word custom columns, and never want the\n'
@@ -421,7 +458,7 @@ class OtherTab(QWidget):
                                              'and word count, but for some books have already assigned values\n'
                                              'into a column and just want the zero/blank column populated.'))
         self.overwrite_checkbox.setChecked(overwrite_existing)
-        other_group_box_layout.addWidget(self.overwrite_checkbox, 1, 0, 1, 3)
+        other_group_box_layout.addWidget(self.overwrite_checkbox, 2, 0, 1, 3)
 
         self.update_if_unchanged_checkbox = QCheckBox(_('Update the statistics even if they have not changed'), self)
         self.update_if_unchanged_checkbox.setToolTip(_('Check this option if you want the statistics to be updated in\n'
@@ -429,7 +466,7 @@ class OtherTab(QWidget):
                                                        'option will always update the modified timestamp for the book\n'
                                                        'even when the statistics have not changed.'))
         self.update_if_unchanged_checkbox.setChecked(update_if_unchanged)
-        other_group_box_layout.addWidget(self.update_if_unchanged_checkbox, 2, 0, 1, 3)
+        other_group_box_layout.addWidget(self.update_if_unchanged_checkbox, 3, 0, 1, 3)
 
         self.use_preferred_output_checkbox = QCheckBox(_('Use Preferred Output Format if available'), self)
         self.use_preferred_output_checkbox.setToolTip(_('Check this option to calculate the statistics using the format selected\n'
@@ -439,7 +476,7 @@ class OtherTab(QWidget):
                                                         'are specified in Behavior page of the calibre Preferences.\n'
                                                         'Note: ePub will always be used if the ADE page count algorithm is selected.'))
         self.use_preferred_output_checkbox.setChecked(use_preferred_output)
-        other_group_box_layout.addWidget(self.use_preferred_output_checkbox, 3, 0, 1, 3)
+        other_group_box_layout.addWidget(self.use_preferred_output_checkbox, 4, 0, 1, 3)
 
         self.ask_for_confirmation_checkbox = QCheckBox(_('Prompt to save counts'), self)
         self.ask_for_confirmation_checkbox.setToolTip(_('Uncheck this option if you want changes applied without\n'
@@ -447,7 +484,7 @@ class OtherTab(QWidget):
                                                         'option unchecked that if you are making other changes to\n'
                                                         'this book record at the same time they will be lost.'))
         self.ask_for_confirmation_checkbox.setChecked(ask_for_confirmation)
-        other_group_box_layout.addWidget(self.ask_for_confirmation_checkbox, 4, 0, 1, 3)
+        other_group_box_layout.addWidget(self.ask_for_confirmation_checkbox, 5, 0, 1, 3)
 
         button_layout = QHBoxLayout()
         keyboard_shortcuts_button = QPushButton(' '+_('Keyboard shortcuts')+'... ', self)
@@ -605,7 +642,7 @@ class StatisticsTab(QWidget):
         page_group_box.setLayout(page_group_box_layout)
 
         page_column_label = QLabel(_('&Custom column:'), self)
-        toolTip = _('Leave this blank if you do not want to count pages')
+        toolTip = _('Column must be of type float or int. Leave this blank if you do not want to count pages')
         page_column_label.setToolTip(toolTip)
         page_col = library_config.get(KEY_PAGES_CUSTOM_COLUMN, '')
         self.page_column_combo = CustomColumnComboBox(self, avail_columns, page_col)
@@ -640,7 +677,7 @@ class StatisticsTab(QWidget):
         word_group_box_layout = QGridLayout()
         word_group_box.setLayout(word_group_box_layout)
         word_column_label = QLabel(_('C&ustom column:'), self)
-        toolTip = _('Leave this blank if you do not want to count words')
+        toolTip = _('Column must be of type float or int. Leave this blank if you do not want to count words')
         word_column_label.setToolTip(toolTip)
         word_col = library_config.get(KEY_WORDS_CUSTOM_COLUMN, '')
         self.word_column_combo = CustomColumnComboBox(self, avail_columns, word_col)
@@ -668,7 +705,7 @@ class StatisticsTab(QWidget):
         readability_layout.addWidget(readability_label, 0, 0, 1, 3)
         readability_label.linkActivated.connect(self.parent_dialog._link_activated)
 
-        flesch_reading_column_label = QLabel(_('&Flesch Reading Ease:'), self)
+        flesch_reading_column_label = QLabel(_('Flesch Reading Ease') + ':', self)
         toolTip = _('Specify the custom column to store a computed Flesch Reading Ease score.\n'
                     'Leave this blank if you do not want to calculate it')
         flesch_reading_column_label.setToolTip(toolTip)
@@ -679,7 +716,7 @@ class StatisticsTab(QWidget):
         readability_layout.addWidget(flesch_reading_column_label, 1, 0, 1, 1)
         readability_layout.addWidget(self.flesch_reading_column_combo, 1, 1, 1, 2)
 
-        flesch_grade_column_label = QLabel(_('Flesch-&Kincaid Grade:'), self)
+        flesch_grade_column_label = QLabel(_('Flesch-Kincaid Grade Level') + ':', self)
         toolTip = _('Specify the custom column to store a computed Flesch-Kincaid Grade Level score.\n'
                     'Leave this blank if you do not want to calculate it')
         flesch_grade_column_label.setToolTip(toolTip)
@@ -690,7 +727,7 @@ class StatisticsTab(QWidget):
         readability_layout.addWidget(flesch_grade_column_label, 2, 0, 1, 1)
         readability_layout.addWidget(self.flesch_grade_column_combo, 2, 1, 1, 2)
 
-        gunning_fog_column_label = QLabel(_('&Gunning Fog Index:'), self)
+        gunning_fog_column_label = QLabel(_('Gunning Fog Index') + ':', self)
         toolTip = _('Specify the custom column to store a computed Gunning Fog Index score.\n'
                     'Leave this blank if you do not want to calculate it')
         gunning_fog_column_label.setToolTip(toolTip)

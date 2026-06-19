@@ -26,7 +26,7 @@ class Baen(Source):
     name                    = 'Baen'
     description             = 'Downloads metadata and covers from Baen'
     author                  = 'Grant Drake'
-    version                 = (1, 1, 0)
+    version                 = (1, 2, 0)
     minimum_calibre_version = (2, 0, 0)
 
     ID_NAME = 'baen'
@@ -44,7 +44,7 @@ class Baen(Source):
             # Try the legacy identifier from previous version of this plugin
             baen_id = identifiers.get('webscription', None)
         if baen_id:
-            match_groups = re.search('p-\d+-(.*)', baen_id)
+            match_groups = re.search(r"p-\d+-(.*)", baen_id)
             if match_groups and len(match_groups.groups(0)) == 1:
                 baen_id = match_groups.groups(0)[0]
         return baen_id
@@ -56,7 +56,7 @@ class Baen(Source):
                     '%s/%s.html'%(Baen.BASE_URL, baen_id))
 
     def id_from_url(self, url):
-        match = re.match(self.BASE_URL + "/(.*)\.htm.*", url)
+        match = re.match(self.BASE_URL + r"/(.*)\.htm.*", url)
         if match:
             return (self.ID_NAME, match.groups(0)[0])
         return None
@@ -195,8 +195,8 @@ class Baen(Source):
         # by Author1, Author2
         # by Author1, Author2 and Author3
         # by Author1<br />Edited by Author2 (we have replaced <br /> with comma above)
-        authors_text = re.sub('[Ee]dited\sby ', '', authors_text).strip()
-        authors_text = re.sub('\sand\s', ',', authors_text)
+        authors_text = re.sub(r"[Ee]dited\sby ", '', authors_text).strip()
+        authors_text = re.sub(r"\sand\s", ',', authors_text)
         if authors_text.lower().startswith('by '):
             authors_text = authors_text[3:]
         #log.info('_cleanup_authors: authors="%s"' % authors_text)

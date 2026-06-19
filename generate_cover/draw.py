@@ -32,9 +32,10 @@ def swap_author_names(author):
 class TextLine(object):
 
     def __init__(self, text, font_name, font_size,
-                 bottom_margin=30, align='center'):
+                 bottom_margin=30, align='center', fill_color='#000000'):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
+        self.fill_color = fill_color
         try:
             from qt.core import QFont, Qt
         except ImportError:
@@ -45,9 +46,9 @@ class TextLine(object):
                        'left': Qt.AlignLeft, 'right': Qt.AlignRight}[align]
 
 
-def get_textline(text, font_info, margin):
+def get_textline(text, font_info, margin, fill_color='#000000'):
     return TextLine(text, font_info['name'], font_info['size'], margin,
-                    align=font_info['align'])
+                    align=font_info['align'], fill_color=fill_color)
 
 
 class DrawingWand(object):
@@ -57,10 +58,8 @@ class DrawingWand(object):
             setattr(self, k, v)
 
 
-def create_colored_text_wand(line, fill_color, stroke_color):
-    return DrawingWand(**{
-        'fill_color': fill_color, 'stroke_color':
-        stroke_color, 'font': line.font, 'align': line._align})
+def create_colored_text_wand(line):
+    return DrawingWand(**{'fill_color': line.fill_color, 'stroke_color': None, 'font': line.font, 'align': line._align})
 
 
 def add_border(img, border_width, border_color, bgcolor):
@@ -124,8 +123,8 @@ def draw_sized_text(img, dw, line, top, left_margin, right_margin,
                     break
         p.setFont(line.font)
         br = p.drawText(QRect(
-            left_margin, top, img.size[0] - left_margin - right_margin,
-            img.size[1] - top), flags | Qt.TextWordWrap, line.text)
+            int(left_margin), int(top), int(img.size[0] - left_margin - right_margin), int(img.size[1] - top)), 
+            flags | Qt.TextWordWrap, line.text)
         return br.bottom()
     finally:
         p.end()
@@ -174,11 +173,8 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     right_text_margin = right_mgn if right_mgn > 0 else 10
 
     colors = options[cfg.KEY_COLORS]
-    bgcolor, border_color, fill_color, stroke_color = (
-        colors['background'], colors['border'], colors['fill'],
-        colors['stroke'])
-    if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False):
-        stroke_color = None
+    bgcolor, border_color = (
+        colors['background'], colors['border'])
     auto_reduce_font = options.get(cfg.KEY_FONTS_AUTOREDUCED, False)
     borders = options[cfg.KEY_BORDERS]
     (cover_border_width, image_border_width) = (
@@ -204,7 +200,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     top = top_mgn
     if len(top_lines) > 0:
         for line in top_lines:
-            twand = create_colored_text_wand(line, fill_color, stroke_color)
+            twand = create_colored_text_wand(line)
             top = draw_sized_text(
                 canvas, twand, line, top, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -216,8 +212,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         fake_canvas = create_canvas(width, height, bgcolor)
         footer_height = 0
         for line in bottom_lines:
-            line.twand = create_colored_text_wand(
-                line, fill_color, stroke_color)
+            line.twand = create_colored_text_wand(line)
             footer_height = draw_sized_text(
                 fake_canvas, line.twand, line, footer_height, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -298,24 +293,36 @@ def generate_cover_for_book(mi, options=None, db=None):
     if custom_text:
         from calibre.ebooks.metadata.book.formatter import SafeFormat
         custom_text = SafeFormat().safe_format(
-            custom_text.replace('\n', '<br/>'), mi, 'GC template error', mi)
+            custom_text, mi, 'GC template error', mi).replace('<br/>','\n')
 
     fonts = options[cfg.KEY_FONTS]
     margin = options[cfg.KEY_MARGINS]['text']
+    colors = options[cfg.KEY_COLORS]
+    use_same_fill_color = options.get(cfg.KEY_FILL_COLORS_LINKED, True)
+    
+    # Determine fill colors for each text type
+    title_fill = colors.get('title_fill', '#000000')
+    if use_same_fill_color:
+        author_fill = series_fill = custom_fill = title_fill
+    else:
+        author_fill = colors.get('author_fill', title_fill)
+        series_fill = colors.get('series_fill', title_fill)
+        custom_fill = colors.get('custom_fill', title_fill)
+    
     content_lines = {}
     content_lines['Title'] = [
-        get_textline(title_line.strip(), fonts['title'], margin)
+        get_textline(title_line.strip(), fonts['title'], margin, title_fill)
         for title_line in split_and_replace_newlines(title)]
     content_lines['Author'] = [
-        get_textline(author_line.strip(), fonts['author'], margin)
+        get_textline(author_line.strip(), fonts['author'], margin, author_fill)
         for author_line in split_and_replace_newlines(author_string)]
     if series_string:
         content_lines['Series'] = [
-            get_textline(series_line.strip(), fonts['series'], margin)
+            get_textline(series_line.strip(), fonts['series'], margin, series_fill)
             for series_line in split_and_replace_newlines(series_string)]
     if custom_text:
         content_lines['Custom Text'] = [
-            get_textline(ct.strip(), fonts['custom'], margin)
+            get_textline(ct.strip(), fonts['custom'], margin, custom_fill)
             for ct in split_and_replace_newlines(custom_text)]
     top_lines = []
     bottom_lines = []

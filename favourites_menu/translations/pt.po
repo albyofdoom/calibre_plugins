@@ -1,0 +1,150 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Eusébia Rodrigues <catarinarodrigues432@gmail.com>, 2022
+# Manuela Silva <mmsrs@sky.com>, 2022
+# Paulo Pereira <pauloizidoro@gmail.com>, 2024
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2024-03-24 17:59+1000\n"
+"PO-Revision-Date: 2022-09-19 15:15+0000\n"
+"Last-Translator: Paulo Pereira <pauloizidoro@gmail.com>, 2024\n"
+"Language-Team: Portuguese (https://app.transifex.com/calibre/teams/19337/pt/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Language: pt\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+#: ..\common\common_dialogs.py:84
+msgid "Keyboard shortcuts"
+msgstr "Atalhos de teclado"
+
+#: ..\common\common_dialogs.py:112
+msgid "Restart calibre now"
+msgstr "Reiniciar o Calibre agora"
+
+#: ..\common\common_dialogs.py:128
+msgid "Preferences for:"
+msgstr "Preferências para:"
+
+#: ..\common\common_dialogs.py:160
+msgid "Clear"
+msgstr "Limpar"
+
+#: ..\common\common_dialogs.py:162
+msgid "Clear all settings for this plugin"
+msgstr "Limpar todas as definições deste plugin"
+
+#: ..\common\common_dialogs.py:189
+msgid ""
+"Are you sure you want to change your settings in this library for this "
+"plugin?"
+msgstr ""
+"Tem a certeza que pretende alterar as suas configurações do plugin para esta"
+" biblioteca?"
+
+#: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
+msgid ""
+"Any settings in other libraries or stored in a JSON file in your calibre "
+"plugins folder will not be touched."
+msgstr ""
+"Quaisquer definições noutras bibliotecas, ou armazenadas num ficheiro JSON "
+"na sua pasta de plugins do Calibre, não serão tocadas."
+
+#: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
+msgid "You must restart calibre afterwards."
+msgstr "É necessário reiniciar o Calibre posteriormente."
+
+#: ..\common\common_dialogs.py:200
+msgid "Settings changed"
+msgstr "Definições alteradas"
+
+#: ..\common\common_dialogs.py:201
+msgid "Settings for this plugin in this library have been changed."
+msgstr "As definições deste plugin, para esta biblioteca, foram alteradas."
+
+#: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
+msgid "Please restart calibre now."
+msgstr "Por favor, reinicie o Calibre agora."
+
+#: ..\common\common_dialogs.py:209
+msgid ""
+"Are you sure you want to clear your settings in this library for this "
+"plugin?"
+msgstr ""
+"Tem a certeza que pretende limpar todas as suas definições, nesta "
+"biblioteca, para este plugin?"
+
+#: ..\common\common_dialogs.py:221
+msgid "Settings deleted"
+msgstr "Definições eliminadas"
+
+#: ..\common\common_dialogs.py:222
+msgid "All settings for this plugin in this library have been cleared."
+msgstr ""
+"Todas as definições deste plugin, para esta biblioteca, foram removidas."
+
+#: ..\common\common_dialogs.py:297
+msgid "Copy to clipboard"
+msgstr "Copiar para a área de transferência"
+
+#: ..\common\common_widgets.py:105
+msgid "Undefined"
+msgstr "Não definido"
+
+#: ..\common\common_widgets.py:160
+msgid "Restart required"
+msgstr "Necessário reiniciar"
+
+#: ..\common\common_widgets.py:161
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"Imagem do título não encontrada. Deve reiniciar o Calibre antes de utilizar "
+"este plugin!"
+
+#: ..\common\common_widgets.py:234
+msgid "Create new column"
+msgstr "Criar nova coluna"
+
+#: action.py:68
+msgid "Favourites"
+msgstr ""
+
+#: action.py:155
+msgid "&Customize plugin"
+msgstr "&Personalizar plugin"
+
+#: action.py:157 config.py:213
+msgid "&Help"
+msgstr "&Ajuda"
+
+#: config.py:64
+msgid "Separator"
+msgstr ""
+
+#: config.py:184
+msgid "Move the selected menu item up"
+msgstr ""
+
+#: config.py:188
+msgid "Move the selected menu item down"
+msgstr ""
+
+#: config.py:192
+msgid "Remove the selected item from the menu"
+msgstr ""
+
+#: config.py:196
+msgid "Add a separator to the menu following the selected item"
+msgstr ""
+
+#: config.py:200
+msgid "Rename the menu item for when it appears on your Favourites menu"
+msgstr ""

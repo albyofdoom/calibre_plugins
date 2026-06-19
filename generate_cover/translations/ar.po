@@ -1,0 +1,845 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Usama Salama, 2022
+# Usama Khalil, 2025
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2024-03-24 17:59+1000\n"
+"PO-Revision-Date: 2022-09-19 15:06+0000\n"
+"Last-Translator: Usama Khalil, 2025\n"
+"Language-Team: Arabic (https://app.transifex.com/calibre/teams/19337/ar/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Language: ar\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: ..\common\common_dialogs.py:84 config.py:334
+msgid "Keyboard shortcuts"
+msgstr "مختصرات لوحة المفاتيح"
+
+#: ..\common\common_dialogs.py:112
+msgid "Restart calibre now"
+msgstr "أعد تشغيل calibre الآن"
+
+#: ..\common\common_dialogs.py:128
+msgid "Preferences for:"
+msgstr "تفضيلات لـ:"
+
+#: ..\common\common_dialogs.py:160
+msgid "Clear"
+msgstr "مسح"
+
+#: ..\common\common_dialogs.py:162
+msgid "Clear all settings for this plugin"
+msgstr "مسح جميع إعدادات هذه الإضافة"
+
+#: ..\common\common_dialogs.py:189
+msgid ""
+"Are you sure you want to change your settings in this library for this "
+"plugin?"
+msgstr "هل أنت متأكد أنك تريد تغيير إعداداتك في هذه المكتبة لهذه الإضافة؟"
+
+#: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
+msgid ""
+"Any settings in other libraries or stored in a JSON file in your calibre "
+"plugins folder will not be touched."
+msgstr ""
+"لن يتم المساس بأي إعدادات في مكتبات أخرى أو مخزنة في ملف JSON في مجلد إضافات"
+" calibre الخاص بك."
+
+#: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
+msgid "You must restart calibre afterwards."
+msgstr "يجب عليك إعادة تشغيل calibre بعد ذلك."
+
+#: ..\common\common_dialogs.py:200
+msgid "Settings changed"
+msgstr "الإعدادات تغيرت"
+
+#: ..\common\common_dialogs.py:201
+msgid "Settings for this plugin in this library have been changed."
+msgstr "تم تغيير إعدادات هذه الإضافة في هذه المكتبة."
+
+#: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
+msgid "Please restart calibre now."
+msgstr "من فضلك أعد تشغيل calibre الآن."
+
+#: ..\common\common_dialogs.py:209
+msgid ""
+"Are you sure you want to clear your settings in this library for this "
+"plugin?"
+msgstr "هل أنت متأكد أنك تريد مسح إعداداتك في هذه المكتبة لهذه الإضافة؟"
+
+#: ..\common\common_dialogs.py:221
+msgid "Settings deleted"
+msgstr "تم حذف الإعدادات"
+
+#: ..\common\common_dialogs.py:222
+msgid "All settings for this plugin in this library have been cleared."
+msgstr "تم مسح جميع إعدادات هذه الإضافة في هذه المكتبة."
+
+#: ..\common\common_dialogs.py:297
+msgid "Copy to clipboard"
+msgstr "نسخ إلى الحافظة"
+
+#: ..\common\common_widgets.py:105
+msgid "Undefined"
+msgstr "غير معرف"
+
+#: ..\common\common_widgets.py:160
+msgid "Restart required"
+msgstr "إعادة التشغيل مطلوبة"
+
+#: ..\common\common_widgets.py:161
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"صورة العنوان غير موجودة - يجب عليك إعادة تشغيل Calibre قبل استخدام هذه "
+"الإضافة!"
+
+#: ..\common\common_widgets.py:234
+msgid "Create new column"
+msgstr "إنشاء عمود جديد"
+
+#: action.py:30
+msgid "Generate Cover"
+msgstr "إنشاء غلاف"
+
+#: action.py:30
+msgid "Generate a customised cover"
+msgstr "إنشاء غلاف مخصص"
+
+#: action.py:60
+msgid "Cannot generate covers"
+msgstr "لا يمكن إنشاء أغلفة"
+
+#: action.py:61
+msgid "No books selected"
+msgstr "لم يتم تحديد كتب"
+
+#: action.py:86
+msgid "Corrupted setting: \"%s\" has incorrect internal name of: \"%s\")"
+msgstr "إعداد تالف: \"%s\" له اسم داخلي غير صحيح: \"%s\")"
+
+#: action.py:90
+msgid "Corrupted Configuration File"
+msgstr "ملف تهيئة تالف"
+
+#: action.py:91
+msgid ""
+"<p>Your configuration file was corrupted (see Details).</p>)<p>Please report"
+" your exact recent actions which led to this on the MobileRead forum thread "
+"for this plugin so it can be fixed.</p><p>The configuration has been fixed "
+"automatically.</p>"
+msgstr ""
+"<p>ملف التهيئة الخاص بك تالف (انظر التفاصيل).</p>)<p>يرجى الإبلاغ عن "
+"الإجراءات الأخيرة التي أدت إلى ذلك في موضوع منتدى MobileRead لهذه الإضافة "
+"حتى يمكن إصلاحها.</p><p>تم إصلاح التهيئة تلقائيًا.</p>"
+
+#: action.py:137 action.py:147
+msgid "Cannot generate cover"
+msgstr "لا يمكن إنشاء غلاف"
+
+#: action.py:138
+msgid "Missing metadata passed for book to generate cover"
+msgstr "البيانات الوصفية المفقودة التي تم تمريرها للكتاب لإنشاء غلاف"
+
+#: action.py:148
+msgid "No cover settings exist named: \"%s\""
+msgstr "لا توجد إعدادات غلاف باسم: \"%s\""
+
+#: config.py:320
+msgid "After generating cover:"
+msgstr "بعد إنشاء الغلاف:"
+
+#: config.py:329
+msgid "Update column:"
+msgstr "تحديث العمود:"
+
+#: config.py:330
+msgid "Update value:"
+msgstr "تحديث القيمة:"
+
+#: config.py:335
+msgid "Edit the keyboard shortcuts associated with this plugin"
+msgstr "تحرير اختصارات لوحة المفاتيح المرتبطة بهذه الإضافة"
+
+#: config.py:339
+msgid "View library preferences"
+msgstr "عرض تفضيلات المكتبة"
+
+#: config.py:340
+msgid "View data stored in the library database for this plugin"
+msgstr "عرض البيانات المخزنة في قاعدة بيانات المكتبة لهذه الإضافة"
+
+#: config.py:344 dialogs.py:1420
+msgid "&Help"
+msgstr "&مساعدة"
+
+#: dialogs.py:94 dialogs.py:165
+msgid "Cancel"
+msgstr "إلغاء"
+
+#: dialogs.py:95
+msgid "Generating %d covers"
+msgstr "جارٍ إنشاء %d غلاف"
+
+#: dialogs.py:109
+msgid "Generating: "
+msgstr "جارٍ الإنشاء: "
+
+#: dialogs.py:127 dialogs.py:150
+msgid "Unsaved Changes"
+msgstr "تغييرات غير محفوظة"
+
+#: dialogs.py:131 dialogs.py:154
+msgid "You have unsaved changes to the <b>%s</b> setting.<br>"
+msgstr "لديك تغييرات غير محفوظة على إعداد <b>%s</b>.<br>"
+
+#: dialogs.py:132 dialogs.py:155
+msgid "What do you want to do?"
+msgstr "ماذا تريد أن تفعل؟"
+
+#: dialogs.py:135
+msgid "Discard Changes"
+msgstr "تجاهل التغييرات"
+
+#: dialogs.py:136
+msgid "Revert unsaved changes"
+msgstr "التراجع عن التغييرات غير المحفوظة"
+
+#: dialogs.py:138
+msgid "Save Changes"
+msgstr "حفظ التغييرات"
+
+#: dialogs.py:139
+msgid "Overwrite current profile with these changes"
+msgstr "الكتابة فوق الملف الشخصي الحالي بهذه التغييرات"
+
+#: dialogs.py:158
+msgid "Generate && Save"
+msgstr "إنشاء && حفظ"
+
+#: dialogs.py:159
+msgid "Generate cover using these settings and save for future usage"
+msgstr "إنشاء غلاف باستخدام هذه الإعدادات وحفظه للاستخدام المستقبلي"
+
+#: dialogs.py:161
+msgid "Generate && Revert"
+msgstr "إنشاء && تراجع"
+
+#: dialogs.py:162
+msgid "Generate cover using these settings then discard them"
+msgstr "إنشاء غلاف باستخدام هذه الإعدادات ثم تجاهلها"
+
+#: dialogs.py:166
+msgid "Cancel action"
+msgstr "إلغاء الإجراء"
+
+#: dialogs.py:450 dialogs.py:528
+msgid "Saved Settings:"
+msgstr "الإعدادات المحفوظة:"
+
+#: dialogs.py:460
+msgid "Autosave settings"
+msgstr "حفظ الإعدادات تلقائيًا"
+
+#: dialogs.py:461
+msgid ""
+"Do not prompt to save changes to a setting. Always save when\n"
+"switching to another setting, clicking OK or using Import/Export."
+msgstr ""
+"لا تطالب بحفظ التغييرات على إعداد. احفظ دائمًا عند\n"
+"التبديل إلى إعداد آخر، النقر على موافق أو استخدام استيراد/تصدير."
+
+#: dialogs.py:468
+msgid "Add setting"
+msgstr "إضافة إعداد"
+
+#: dialogs.py:473
+msgid "Rename setting"
+msgstr "إعادة تسمية الإعداد"
+
+#: dialogs.py:479 dialogs.py:667
+msgid "Import setting"
+msgstr "استيراد إعداد"
+
+#: dialogs.py:484
+msgid "Export setting"
+msgstr "تصدير إعداد"
+
+#: dialogs.py:490
+msgid "Delete setting from this list"
+msgstr "حذف الإعداد من هذه القائمة"
+
+#: dialogs.py:498
+msgid "Select Image:"
+msgstr "تحديد الصورة:"
+
+#: dialogs.py:509
+msgid "Add image to this list"
+msgstr "إضافة صورة إلى هذه القائمة"
+
+#: dialogs.py:514
+msgid "Rename image"
+msgstr "إعادة تسمية الصورة"
+
+#: dialogs.py:519
+msgid "Remove image from this list"
+msgstr "إزالة الصورة من هذه القائمة"
+
+#: dialogs.py:530
+msgid "Saved Settings: (*unsaved changes)"
+msgstr "الإعدادات المحفوظة: (*تغييرات غير محفوظة)"
+
+#: dialogs.py:561
+msgid "Add new setting"
+msgstr "إضافة إعداد جديد"
+
+#: dialogs.py:584
+msgid "Cannot add"
+msgstr "لا يمكن الإضافة"
+
+#: dialogs.py:585
+msgid "The name you specified is not unique"
+msgstr "الاسم الذي حددته غير فريد"
+
+#: dialogs.py:594 dialogs.py:837
+msgid "Cannot remove"
+msgstr "لا يمكن الإزالة"
+
+#: dialogs.py:595
+msgid "You cannot remove the default setting"
+msgstr "لا يمكنك إزالة الإعداد الافتراضي"
+
+#: dialogs.py:596 dialogs.py:840 dialogs.py:1495 dialogs.py:1514
+msgid "Are you sure?"
+msgstr "هل أنت متأكد؟"
+
+#: dialogs.py:597
+msgid "Are you sure you want to remove the '%s' setting?"
+msgstr "هل أنت متأكد أنك تريد إزالة الإعداد '%s'؟"
+
+#: dialogs.py:610 dialogs.py:787 dialogs.py:813
+msgid "Cannot rename"
+msgstr "لا يمكن إعادة التسمية"
+
+#: dialogs.py:611
+msgid "You cannot rename the default setting"
+msgstr "لا يمكنك إعادة تسمية الإعداد الافتراضي"
+
+#: dialogs.py:612 dialogs.py:613
+msgid "New setting name:"
+msgstr "اسم الإعداد الجديد:"
+
+#: dialogs.py:621
+msgid "Setting exists"
+msgstr "الإعداد موجود"
+
+#: dialogs.py:622
+msgid "A saved setting already exists with this name."
+msgstr "يوجد إعداد محفوظ بالفعل بهذا الاسم."
+
+#: dialogs.py:647
+msgid "Import Failed"
+msgstr "فشل الاستيراد"
+
+#: dialogs.py:648
+msgid "This is not a valid Generate Cover export archive"
+msgstr "هذا ليس أرشيف تصدير غلاف صالح للإنشاء"
+
+#: dialogs.py:686
+msgid "Cannot import"
+msgstr "لا يمكن الاستيراد"
+
+#: dialogs.py:687 dialogs.py:879
+msgid "Failed to copy image"
+msgstr "فشل نسخ الصورة"
+
+#: dialogs.py:745
+msgid "Export completed"
+msgstr "اكتمل التصدير"
+
+#: dialogs.py:746
+msgid "Cover setting exported to<br>%s"
+msgstr "تم تصدير إعداد الغلاف إلى<br>%s"
+
+#: dialogs.py:754
+msgid "Select setting file(s) to import"
+msgstr "تحديد ملف (ملفات) الإعداد للاستيراد"
+
+#: dialogs.py:755 dialogs.py:761
+msgid "GC Files"
+msgstr "ملفات GC"
+
+#: dialogs.py:761
+msgid "Save setting as"
+msgstr "حفظ الإعداد باسم"
+
+#: dialogs.py:788
+msgid "You cannot rename this image"
+msgstr "لا يمكنك إعادة تسمية هذه الصورة"
+
+#: dialogs.py:790 dialogs.py:791
+msgid "New image name:"
+msgstr "اسم الصورة الجديد:"
+
+#: dialogs.py:808
+msgid "File exists"
+msgstr "الملف موجود"
+
+#: dialogs.py:809
+msgid "An image already exists with this name."
+msgstr "توجد صورة بهذا الاسم بالفعل."
+
+#: dialogs.py:814
+msgid "Failed to rename image"
+msgstr "فشل إعادة تسمية الصورة"
+
+#: dialogs.py:823
+msgid "Add cover images"
+msgstr "إضافة صور غلاف"
+
+#: dialogs.py:838
+msgid "You cannot remove this image"
+msgstr "لا يمكنك إزالة هذه الصورة"
+
+#: dialogs.py:841
+msgid "Are you sure you want to delete the image: %s"
+msgstr "هل أنت متأكد أنك تريد حذف الصورة: %s"
+
+#: dialogs.py:852 dialogs.py:910
+msgid "Cannot write"
+msgstr "لا يمكن الكتابة"
+
+#: dialogs.py:853
+msgid "You do not have permission to delete the file"
+msgstr "ليس لديك إذن لحذف الملف"
+
+#: dialogs.py:866
+msgid "Cannot read"
+msgstr "لا يمكن القراءة"
+
+#: dialogs.py:867
+msgid "You do not have permission to read the file."
+msgstr "ليس لديك إذن لقراءة الملف."
+
+#: dialogs.py:878
+msgid "Cannot copy"
+msgstr "لا يمكن النسخ"
+
+#: dialogs.py:892
+msgid "Overwrite existing"
+msgstr "الكتابة فوق الموجود"
+
+#: dialogs.py:893
+msgid ""
+"An image file already exists with this name. Do you want to overwrite it?"
+msgstr "ملف صورة موجود بالفعل بهذا الاسم. هل تريد الكتابة فوقه؟"
+
+#: dialogs.py:896
+msgid "Enter image name"
+msgstr "أدخل اسم الصورة"
+
+#: dialogs.py:897
+msgid "Enter a unique name for this image:"
+msgstr "أدخل اسمًا فريدًا لهذه الصورة:"
+
+#: dialogs.py:911
+msgid "You do not have permission to overwrite the file"
+msgstr "ليس لديك إذن للكتابة فوق الملف"
+
+#: dialogs.py:947
+msgid "Title"
+msgstr "العنوان"
+
+#: dialogs.py:948
+msgid "Author"
+msgstr "المؤلف"
+
+#: dialogs.py:949
+msgid "Series"
+msgstr "السلسلة"
+
+#: dialogs.py:950
+msgid "Custom"
+msgstr "مخصص"
+
+#: dialogs.py:953
+msgid "Background"
+msgstr "الخلفية"
+
+#: dialogs.py:954
+msgid "Border"
+msgstr "الحدود"
+
+#: dialogs.py:955
+msgid "Fill"
+msgstr "ملء"
+
+#: dialogs.py:956
+msgid "Stroke"
+msgstr "الحد الخارجي"
+
+#: dialogs.py:969
+msgid "Fonts:"
+msgstr "الخطوط:"
+
+#: dialogs.py:978
+msgid ""
+"Select a font and specify a size in pixels.\n"
+"If font set to 'Default', uses the tweak value from\n"
+"'generate_cover_title_font' if present."
+msgstr ""
+"حدد خطًا وحدد حجمًا بالبكسل.\n"
+"إذا تم تعيين الخط إلى 'افتراضي'، فسيستخدم قيمة التعديل من\n"
+"'generate_cover_title_font' إذا كانت موجودة."
+
+#: dialogs.py:996
+msgid "Use the same font family for all text"
+msgstr "استخدام نفس عائلة الخط لجميع النصوص"
+
+#: dialogs.py:997
+msgid ""
+"When checked, the same font family is used for all text content on the cover"
+msgstr "عند التحديد، يتم استخدام نفس عائلة الخط لجميع محتويات النص على الغلاف"
+
+#: dialogs.py:1004
+msgid "Auto-reduce font size to fit on one line"
+msgstr "تقليل حجم الخط تلقائيًا ليناسب سطر واحد"
+
+#: dialogs.py:1005
+msgid ""
+"When checked, the font size will be used as a maximum size.\n"
+"A reduced size will be used where needed to fit text on one line."
+msgstr ""
+"عند التحديد، سيتم استخدام حجم الخط كحد أقصى للحجم.\n"
+"سيتم استخدام حجم مخفض عند الحاجة لملاءمة النص في سطر واحد."
+
+#: dialogs.py:1011
+msgid "Colors:"
+msgstr "الألوان:"
+
+#: dialogs.py:1027
+msgid "Reset %s color"
+msgstr "إعادة تعيين لون %s"
+
+#: dialogs.py:1032
+msgid "Select a %s color"
+msgstr "تحديد لون %s"
+
+#: dialogs.py:1040
+msgid "Apply"
+msgstr "تطبيق"
+
+#: dialogs.py:1041
+msgid "When checked, stroke color is drawn around text"
+msgstr "عند التحديد، يتم رسم لون الحد حول النص"
+
+#: dialogs.py:1053
+msgid "Left aligned"
+msgstr "محاذاة لليسار"
+
+#: dialogs.py:1055
+msgid "Centered"
+msgstr "متمركز"
+
+#: dialogs.py:1057
+msgid "Right aligned"
+msgstr "محاذاة لليمين"
+
+#: dialogs.py:1128
+msgid "Size:"
+msgstr "الحجم:"
+
+#: dialogs.py:1132
+msgid "Cover width:"
+msgstr "عرض الغلاف:"
+
+#: dialogs.py:1133
+msgid "The width in pixels of the output .jpg file"
+msgstr "العرض بالبكسل لملف .jpg الناتج"
+
+#: dialogs.py:1139
+msgid "Cover height:"
+msgstr "ارتفاع الغلاف:"
+
+#: dialogs.py:1140
+msgid "The height in pixels of the output .jpg file"
+msgstr "الارتفاع بالبكسل لملف .jpg الناتج"
+
+#: dialogs.py:1146
+msgid "Stretch image to use as cover background"
+msgstr "تمديد الصورة لاستخدامها كخلفية للغلاف"
+
+#: dialogs.py:1147
+msgid ""
+"Check this to overlay text on the image background.\n"
+"Uncheck this to place text around the image."
+msgstr ""
+"حدد هذا لتراكب النص على خلفية الصورة.\n"
+"ألغِ تحديد هذا لوضع النص حول الصورة."
+
+#: dialogs.py:1151
+msgid "Resize cover dimensions to match background image"
+msgstr "تغيير أبعاد الغلاف لتتناسب مع صورة الخلفية"
+
+#: dialogs.py:1152
+msgid ""
+"Check this to automatically resize the cover based on\n"
+"the dimensions of the currently chosen background image"
+msgstr ""
+"حدد هذا لتغيير حجم الغلاف تلقائيًا بناءً على\n"
+"أبعاد صورة الخلفية المختارة حاليًا"
+
+#: dialogs.py:1156
+msgid "Resize image to scale up if smaller than available area"
+msgstr "تغيير حجم الصورة لتكبيرها إذا كانت أصغر من المساحة المتاحة"
+
+#: dialogs.py:1157
+msgid ""
+"Check this to automatically resize the cover image to fit the\n"
+"the maximum area available if it is too small"
+msgstr ""
+"حدد هذا لتغيير حجم صورة الغلاف تلقائيًا لتناسب\n"
+"الحد الأقصى للمساحة المتاحة إذا كانت صغيرة جدًا"
+
+#: dialogs.py:1163
+msgid "Margins:"
+msgstr "الهوامش:"
+
+#: dialogs.py:1168
+msgid "Top margin:"
+msgstr "الهامش العلوي:"
+
+#: dialogs.py:1169
+msgid ""
+"The margin in pixels from the top of the cover\n"
+"to the first content"
+msgstr ""
+"الهامش بالبكسل من أعلى الغلاف\n"
+"إلى المحتوى الأول"
+
+#: dialogs.py:1177
+msgid "Bottom margin:"
+msgstr "الهامش السفلي:"
+
+#: dialogs.py:1178
+msgid ""
+"The margin in pixels from the bottom of the cover\n"
+"to the last content"
+msgstr ""
+"الهامش بالبكسل من أسفل الغلاف\n"
+"إلى المحتوى الأخير"
+
+#: dialogs.py:1186
+msgid "Left margin:"
+msgstr "الهامش الأيسر:"
+
+#: dialogs.py:1187
+msgid ""
+"The minimum margin in pixels from the left of the cover\n"
+"to the text content"
+msgstr ""
+"الحد الأدنى للهامش بالبكسل من يسار الغلاف\n"
+"إلى محتوى النص"
+
+#: dialogs.py:1195
+msgid "Right margin:"
+msgstr "الهامش الأيمن:"
+
+#: dialogs.py:1196
+msgid ""
+"The minimum margin in pixels from the right of the cover\n"
+"to the text content"
+msgstr ""
+"الحد الأدنى للهامش بالبكسل من يمين الغلاف\n"
+"إلى محتوى النص"
+
+#: dialogs.py:1204
+msgid "Text padding:"
+msgstr "حشوة النص:"
+
+#: dialogs.py:1205
+msgid "The spacing in pixels between successive lines of text"
+msgstr "المسافة بالبكسل بين السطور المتتالية من النص"
+
+#: dialogs.py:1212
+msgid "Image padding:"
+msgstr "حشوة الصورة:"
+
+#: dialogs.py:1213
+msgid ""
+"The spacing in pixels between the image and text\n"
+"placed above and below it"
+msgstr ""
+"المسافة بالبكسل بين الصورة والنص\n"
+"الموضوعة فوقها وتحتها"
+
+#: dialogs.py:1223
+msgid "Border Widths:"
+msgstr "عروض الحدود:"
+
+#: dialogs.py:1227
+msgid "Cover border:"
+msgstr "حد الغلاف:"
+
+#: dialogs.py:1228
+msgid ""
+"The width in pixels of a border around the edge\n"
+"of the cover. Specify 0 for no border"
+msgstr ""
+"عرض بالبكسل للحد حول حافة\n"
+"الغلاف. حدد 0 لعدم وجود حد"
+
+#: dialogs.py:1235
+msgid "Image border:"
+msgstr "حد الصورة:"
+
+#: dialogs.py:1236
+msgid ""
+"The width in pixels of a border around the edge\n"
+"of the image. Specify 0 for no border"
+msgstr ""
+"عرض بالبكسل للحد حول حافة\n"
+"الصورة. حدد 0 لعدم وجود حد"
+
+#: dialogs.py:1275
+msgid "Field Order:"
+msgstr "ترتيب الحقول:"
+
+#: dialogs.py:1276
+msgid ""
+"Alter the order of items on the cover and\n"
+"whether they are displayed using the checkbox"
+msgstr ""
+"تغيير ترتيب العناصر على الغلاف و\n"
+"ما إذا كانت معروضة باستخدام مربع الاختيار"
+
+#: dialogs.py:1290
+msgid "Move field up"
+msgstr "نقل الحقل لأعلى"
+
+#: dialogs.py:1297
+msgid "Move field down"
+msgstr "نقل الحقل لأسفل"
+
+#: dialogs.py:1303
+msgid "Other Options:"
+msgstr "خيارات أخرى:"
+
+#: dialogs.py:1307
+msgid "Custom text:"
+msgstr "نص مخصص:"
+
+#: dialogs.py:1317
+msgid "Swap author LN,FN to FN LN"
+msgstr "تبديل المؤلف (اسم العائلة، الاسم الأول) إلى (الاسم الأول اسم العائلة)"
+
+#: dialogs.py:1318
+msgid ""
+"Use this option if your authors are stored as LN, FN\n"
+"but you prefer to see FN LN on the book cover"
+msgstr ""
+"استخدم هذا الخيار إذا كان مؤلفوك مخزنين كـ (اسم العائلة، الاسم الأول)\n"
+"ولكنك تفضل رؤية (الاسم الأول اسم العائلة) على غلاف الكتاب"
+
+#: dialogs.py:1322
+msgid "Series text:"
+msgstr "نص السلسلة:"
+
+#: dialogs.py:1323
+msgid ""
+"Change the way series information is displayed.\n"
+"Useful for non-English languages!"
+msgstr ""
+"تغيير طريقة عرض معلومات السلسلة.\n"
+"مفيد للغات غير الإنجليزية!"
+
+#: dialogs.py:1331
+msgid "Metadata: (*not saved)"
+msgstr "البيانات الوصفية: (*غير محفوظة)"
+
+#: dialogs.py:1332
+msgid ""
+"Optionally override the text in these fields for this book.\n"
+"These are not saved as part of the settings profile.\n"
+"This functionality is disabled if multiple books are selected."
+msgstr ""
+"اختياريًا، تجاوز النص في هذه الحقول لهذا الكتاب.\n"
+"لا يتم حفظ هذه كجزء من ملف تعريف الإعدادات.\n"
+"يتم تعطيل هذه الوظيفة إذا تم تحديد كتب متعددة."
+
+#: dialogs.py:1338
+msgid "Title:"
+msgstr "العنوان:"
+
+#: dialogs.py:1341
+msgid "Author:"
+msgstr "المؤلف:"
+
+#: dialogs.py:1344
+msgid "Series:"
+msgstr "السلسلة:"
+
+#: dialogs.py:1374
+msgid "Cover Options"
+msgstr "خيارات الغلاف"
+
+#: dialogs.py:1377
+msgid "Generate Custom Cover"
+msgstr "إنشاء غلاف مخصص"
+
+#: dialogs.py:1398
+msgid "Settings"
+msgstr "الإعدادات"
+
+#: dialogs.py:1399
+msgid "Fonts"
+msgstr "الخطوط"
+
+#: dialogs.py:1400
+msgid "Dimensions"
+msgstr "الأبعاد"
+
+#: dialogs.py:1401
+msgid "Contents"
+msgstr "المحتويات"
+
+#: dialogs.py:1411
+msgid " Revert "
+msgstr " تراجع "
+
+#: dialogs.py:1412
+msgid "Revert to your previous saved setting values"
+msgstr "العودة إلى قيم الإعدادات المحفوظة السابقة"
+
+#: dialogs.py:1414
+msgid " Save "
+msgstr " حفظ "
+
+#: dialogs.py:1415
+msgid "Overwrite your current saved setting"
+msgstr "الكتابة فوق الإعداد المحفوظ الحالي"
+
+#: dialogs.py:1417
+msgid " Customize... "
+msgstr " تخصيص... "
+
+#: dialogs.py:1418
+msgid "Set general options for this plugin"
+msgstr "تعيين خيارات عامة لهذه الإضافة"
+
+#: dialogs.py:1496
+msgid "Revert to your previously saved values for '%s'?"
+msgstr "العودة إلى قيمك المحفوظة مسبقًا لـ '%s'؟"
+
+#: dialogs.py:1515
+msgid "Overwrite the '%s' setting with the current values?"
+msgstr "الكتابة فوق إعداد '%s' بالقيم الحالية؟"

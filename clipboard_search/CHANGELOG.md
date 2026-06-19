@@ -1,5 +1,25 @@
 # Clipboard Search Change Log
 
+## [1.5.2] - 2026-02-09
+### Added
+- Arabic translation
+- Czech translation
+- Galacian translation
+- Japanese translation
+- Romanian translation
+### Fixed
+- Debug output warning from Python
+
+## [1.5.1] - 2024-04-03
+### Fixed
+- Default click action had typo from author search refactoring.
+
+## [1.5.0] - 2024-03-30
+### Added
+- Add an Author search option (kacir)
+### Fixed
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
+
 ## [1.4.1] - 2024-03-17
 ### Added
 - Catalan translation

@@ -17,7 +17,7 @@ from six import text_type as unicode
 
 from calibre import as_unicode
 from calibre.ebooks.metadata.sources.base import Source
-from calibre.utils.icu import lower
+from calibre.utils.icu import lower as icu_lower
 from calibre.utils.localization import get_udc
 
 # Querying FantasticFiction is complicated by the fact that the webpage is not a
@@ -32,25 +32,34 @@ from calibre.utils.localization import get_udc
 '''
 json = {
   "status": {
-    "rid": "+NWS9NEvttP/AwrUQfM=",
-    "time-ms": 4
+    "rid": "l4uHja8zm+OBAQrUR7k=",
+    "time-ms": 0
   },
   "hits": {
-    "found": 44,
+    "found": 1,
     "start": 0,
     "hit": [
       {
-        "id": "w93307",
+        "id": "w253217",
         "fields": {
-          "year": "1970",
           "booktype": "1",
-          "authorsinfo": "o/patrick-obrian|Patrick O'Brian|16090|FF",
+          "title": "61 Hours",
+          "pfn": "c/lee-child/61-hours.htm",
+          "year": "2010",
+          "authorsinfo": "c/lee-child|Lee Child|15807|FF",
+          "genrepage": [
+            "T"
+          ],
+          "series_links": [
+            "/c/lee-child/jack-reacher/"
+          ],
+          "seriesinfo": "Jack Reacher|14",
+          "imageurl_amazon": "https://m.media-amazon.com/images/I/51PdZTNGZ5L._SL500_.jpg",
+          "imageurl_amazonuk": "https://m.media-amazon.com/images/I/41UR4mMa8CS._SL500_.jpg",
+          "imageurl_amazonca": "https://m.media-amazon.com/images/I/51PdZTNGZ5L._SL500_.jpg",
           "db": [
             "FF"
-          ],
-          "pfn": "o/patrick-obrian/master-and-commander.htm",
-          "seriesinfo": "Aubrey / Maturin|1",
-          "title": "Master and Commander"
+          ]
         }
       }
     ]
@@ -63,7 +72,7 @@ class FantasticFiction(Source):
     name = 'Fantastic Fiction'
     description = 'Downloads metadata and covers from FantasticFiction.com'
     author = 'Grant Drake'
-    version = (1, 6, 5)
+    version = (1, 7, 5)
     minimum_calibre_version = (2, 85, 1)
 
     ID_NAME = 'ff'
@@ -85,11 +94,15 @@ class FantasticFiction(Source):
     def get_book_url(self, identifiers):
         ff_id = identifiers.get(self.ID_NAME, None)
         if ff_id:
-            return ('FantasticFiction', ff_id,
-                    '%s/%s.htm' % (FantasticFiction.BASE_URL, ff_id))
+            # Check for a special case of the ff_id ending in index, indicating the authors page
+            # In this case the suffix needs to be html, not htm
+            if ff_id.endswith('/index'):
+                return ('FantasticFiction', ff_id, '%s/%s.html' % (FantasticFiction.BASE_URL, ff_id))
+            return ('FantasticFiction', ff_id, '%s/%s.htm' % (FantasticFiction.BASE_URL, ff_id))
+            
 
     def id_from_url(self, url):
-        match = re.match(self.BASE_URL + "/(.*)\.htm.*", url)
+        match = re.match(self.BASE_URL + r"/(.*)\.htm.*", url)
         if match:
             return (self.ID_NAME, match.groups(0)[0])
         return None
@@ -156,11 +169,11 @@ class FantasticFiction(Source):
             return None
         querystring = urlencode({
                 'q.parser': 'structured',
-                'q': "(and db:'FF' '%s')" % q,
-                'size': 20,
+                'q': "(and db:'FF' searchstr:'%s')" % q,
                 'start': 0,
+                'size': 20,
                 'sort': "%s desc" % rank,
-                'return': 'booktype,title,atitle,vtitle,year,pfn,hasimage,authorsinfo,seriesinfo,db,imageloc',
+                'return': 'booktype,title,atitle,vtitle,year,pfn,hasimage,authorsinfo,seriesinfo,db,imageloc,imageurl_amazon,imageurl_amazonuk,imageurl_amazonca,genrepage,series_links,vtitlecountry,hidevtitle',
             })
         return FantasticFiction.BASE_URL + "/dbs/books2?" + querystring
 
@@ -172,6 +185,14 @@ class FantasticFiction(Source):
         '''
         matches = []
         br = self.browser
+        br.set_current_header('Referer', 'https://www.fantasticfiction.com/search/?searchfor=book')
+        from calibre_plugins.fantastic_fiction.config import plugin_prefs, STORE_NAME, KEY_AWS_COOKIE
+        c = plugin_prefs[STORE_NAME]
+        cookie_value = c.get(KEY_AWS_COOKIE, '')
+        if cookie_value:
+            br.set_current_header('Cookie', cookie_value)
+        else:
+            log.error(_('No AWS WAF cookie value configured in options for this plugin, requests will fail'))
 
         # If we have a Fantastic Fiction id then we do not need to fire a "search"
         # at fantasticfiction.co.uk. Instead we will go straight to the URL for that book.
@@ -187,7 +208,7 @@ class FantasticFiction(Source):
             try:
                 log.info('Querying: %s' % query)
                 raw = br.open_novisit(query, timeout=timeout).read()
-                log.info('JSON Result: %s' % raw)
+                #log.info('JSON Result: %s' % raw)
                 # open('E:\\json.html', 'wb').write(raw)
             except Exception as e:
                 err = 'Failed to make identify query'
@@ -195,6 +216,9 @@ class FantasticFiction(Source):
                 return as_unicode(e)
 
             # Our response contains a json dictionary 
+            if not raw:
+                log.error('No JSON data received from query - FF are being mean to us')
+                return
             json_result = json.loads(raw)
             if json_result['hits']['found'] > 0:
                 for hit in json_result['hits']['hit']:
@@ -202,8 +226,6 @@ class FantasticFiction(Source):
                     # Now grab the match from the search result, provided the
                     # title and authors appear to be for the same book
                     self._parse_book_script_detail(log, title, authors, data, matches)
-                    if matches:
-                        break
             if not matches:
                 log.error('No matches found')
                 return
@@ -238,9 +260,6 @@ class FantasticFiction(Source):
         return None
 
     def _parse_book_script_detail(self, log, query_title, query_authors, data_map, matches):
-        title_tokens = list(self.get_title_tokens(query_title))
-        author_tokens = list(self.get_author_tokens(query_authors))
-
         # Now we have our data returned, check the title/author
         title = data_map['title']
         alt_title = ''
@@ -251,27 +270,10 @@ class FantasticFiction(Source):
             pass
         authors = [a.split('|')[1] for a in data_map['authorsinfo'].split('^')]
 
-        def ismatch(title, authors):
-            authors = lower(' '.join(authors))
-            title = lower(title)
-            match = not title_tokens
-            for t in title_tokens:
-                if lower(t) in title:
-                    match = True
-                    break
-            amatch = not author_tokens
-            for a in author_tokens:
-                if lower(a) in authors:
-                    amatch = True
-                    break
-            if not author_tokens: amatch = True
-            return match and amatch
-
-        correct_book = ismatch(title, authors)
+        correct_book = self.filter_result(log, query_title, query_authors, title, authors)
         if not correct_book and alt_title:
-            correct_book = ismatch(alt_title, authors)
+            correct_book = self.filter_result(log, query_title, query_authors, alt_title, authors)
         if not correct_book:
-            log.error('Rejecting as not close enough match: %s %s' % (title, authors))
             return
 
         # Get the detailed url to query next
@@ -279,6 +281,31 @@ class FantasticFiction(Source):
         result_url = '%s/%s' % (FantasticFiction.BASE_URL, pfn)
         matches.append(result_url)
 
+    def filter_result(self, log, query_title, query_authors, title, authors):
+        if title is not None:
+
+            def tokenize_title(x):
+                return icu_lower(x).replace("'", '').replace('"', '').rstrip(':')
+
+            tokens = {tokenize_title(x) for x in title.split() if len(x) > 3}
+            if tokens:
+                result_tokens = {tokenize_title(x) for x in query_title.split()}
+                if not tokens.intersection(result_tokens):
+                    log('Ignoring result:', title, 'as its title does not match')
+                    return False
+        if authors:
+            author_tokens = set()
+            for author in authors:
+                author_tokens |= {icu_lower(x) for x in author.split() if len(x) > 2}
+            result_tokens = set()
+            for author in query_authors:
+                result_tokens |= {icu_lower(x) for x in author.split() if len(x) > 2}
+            if author_tokens and not author_tokens.intersection(result_tokens):
+                log('Ignoring result:', title, 'by', ' & '.join(authors), 'as its author does not match')
+                return False
+        log('Potential match:', title, 'by', ' & '.join(authors))
+        return True
+    
     def download_cover(self, log, result_queue, abort,
             title=None, authors=None, identifiers={}, timeout=30):
         cached_url = self.get_cached_cover_url(identifiers)

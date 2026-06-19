@@ -1,5 +1,28 @@
 # Generate Cover Change Log
 
+## [2.4.0] - 2026-05-05
+### Added
+- Ability to change colors for each text element, rather than all sharing same color
+- Korean translation
+### Fixed
+- Use same font checkbox now working correctly
+
+## [2.3.7] - 2026-02-09
+### Added
+- Chinese translation
+### Fixed
+- Debug output warning from Python
+
+## [2.3.6] - 2025-06-21
+### Added
+- Arabic translation (Usama Khalil)
+### Fixed
+- Ensure drawing text rounds to integers for QRect constructors
+
+## [2.3.5] - 2025-01-06
+### Fixed
+- Custom text now replaces newlines after template formatter evaluation rather than before (@cbhaley)
+
 ## [2.3.4] - 2024-03-17
 ### Added
 - Finnish translation

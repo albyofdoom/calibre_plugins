@@ -1,0 +1,148 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# ROXANA MOHAN <roxanna_p10@yahoo.com>, 2022
+# Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>, 2025
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2024-03-24 17:37+1000\n"
+"PO-Revision-Date: 2022-09-09 18:02+0000\n"
+"Last-Translator: Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>, 2025\n"
+"Language-Team: Romanian (https://app.transifex.com/calibre/teams/19337/ro/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Language: ro\n"
+"Plural-Forms: nplurals=3; plural=(n==1?0:(((n%100>19)||((n%100==0)&&(n!=0)))?2:1));\n"
+
+#: ..\common\common_dialogs.py:84 config.py:69
+msgid "Keyboard shortcuts"
+msgstr "Taste de comenzi rapide"
+
+#: ..\common\common_dialogs.py:112
+msgid "Restart calibre now"
+msgstr "Reporniți calibre acum"
+
+#: ..\common\common_dialogs.py:128
+msgid "Preferences for:"
+msgstr "Preferințe pentru:"
+
+#: ..\common\common_dialogs.py:160
+msgid "Clear"
+msgstr "Ştergere"
+
+#: ..\common\common_dialogs.py:162
+msgid "Clear all settings for this plugin"
+msgstr "Ștergeți toate configurările pentru acest modul de extensie"
+
+#: ..\common\common_dialogs.py:189
+msgid ""
+"Are you sure you want to change your settings in this library for this "
+"plugin?"
+msgstr ""
+"Sunteți sigur că doriți să vă modificați configurările în această bibliotecă"
+" pentru acest modul?"
+
+#: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
+msgid ""
+"Any settings in other libraries or stored in a JSON file in your calibre "
+"plugins folder will not be touched."
+msgstr ""
+"Orice configurări din alte biblioteci sau stocate într-un fișier JSON din "
+"dosarul dvs. de module de extensie calibre nu vor fi atinse."
+
+#: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
+msgid "You must restart calibre afterwards."
+msgstr "După aceea, trebuie să reporniți calibre."
+
+#: ..\common\common_dialogs.py:200
+msgid "Settings changed"
+msgstr "Configurări modificate"
+
+#: ..\common\common_dialogs.py:201
+msgid "Settings for this plugin in this library have been changed."
+msgstr ""
+"Configurările pentru acest modul de extensie din această bibliotecă au fost "
+"modificate."
+
+#: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
+msgid "Please restart calibre now."
+msgstr "Reporniți calibre acum."
+
+#: ..\common\common_dialogs.py:209
+msgid ""
+"Are you sure you want to clear your settings in this library for this "
+"plugin?"
+msgstr ""
+"Sunteți sigur că doriți să vă ștergeți configurările din această bibliotecă "
+"pentru acest modul de extensie?"
+
+#: ..\common\common_dialogs.py:221
+msgid "Settings deleted"
+msgstr "Configurări șterse"
+
+#: ..\common\common_dialogs.py:222
+msgid "All settings for this plugin in this library have been cleared."
+msgstr ""
+"Toate configurările pentru acest modul plugin din această bibliotecă au fost"
+" șterse."
+
+#: ..\common\common_dialogs.py:297
+msgid "Copy to clipboard"
+msgstr "Copiază în clipboard"
+
+#: ..\common\common_widgets.py:105
+msgid "Undefined"
+msgstr "Nedefinit"
+
+#: ..\common\common_widgets.py:160
+msgid "Restart required"
+msgstr "Este necesară repornirea"
+
+#: ..\common\common_widgets.py:161
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"Imaginea de pictogramă nu a fost găsită - trebuie să reporniți Calibre "
+"înainte de a utiliza acest modul!"
+
+#: ..\common\common_widgets.py:234
+msgid "Create new column"
+msgstr "Creează o nouă coloană"
+
+#: action.py:34
+msgid "Clipboard Search"
+msgstr "Căutare în clipboard"
+
+#: action.py:60 config.py:58
+msgid "Text search"
+msgstr "Căutare text"
+
+#: action.py:62 config.py:59
+msgid "Exact text search"
+msgstr "Căutare exactă a textului"
+
+#: action.py:64
+msgid "Author search"
+msgstr "Căutare autor"
+
+#: action.py:67
+msgid "&Customize plugin"
+msgstr "&Personalizare modul"
+
+#: action.py:69 config.py:74
+msgid "&Help"
+msgstr "&Ajutor"
+
+#: config.py:53
+msgid "Default action for toolbar button click"
+msgstr "Acțiunea implicită pentru apăsarea butonului din bara de instrumente"
+
+#: config.py:70
+msgid "Edit the keyboard shortcuts associated with this plugin"
+msgstr "Editați comenzile rapide de la tastatură asociate cu acest modul"

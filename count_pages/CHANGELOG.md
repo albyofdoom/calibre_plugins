@@ -1,5 +1,63 @@
 # Count Pages Change Log
 
+## [1.15.2] - 2026-04-26
+### Fixed
+- Support calibre 3.48 with fix for format strings not supported in older versions.
+
+## [1.15.1] - 2026-04-02
+### Fixed
+- Errors could occur with using batches (temp folder being removed after first batch completes). Each batch now has truly independent disk use. (#162)
+
+## [1.15.0] - 2026-02-25
+### Added
+- When counting larger numbers of books, break into batches of 50 (configurable)
+
+## [1.14.6] - 2026-02-09
+### Added
+- Support for download page counts from babelio.com (French website)
+### Fixed
+- Debug output warning from Python
+
+## [1.14.5] - 2026-02-09
+### Fixed
+- Debug output warning from Python
+
+## [1.14.4] - 2025-12-01
+### Fixed
+- Bump min version up to 3.48.0
+- Ensure older versions of calibre (python) will work with the new dialog introduced for statistics.
+
+## [1.14.3] - 2025-11-23
+### Changed
+- In 'Statistic totals for selected books' skip books with missing statistics (and warn user) so as to not impact averages.
+
+## [1.14.2] - 2025-11-16
+### Added
+- New 'Statistic totals for selected books' feature to show a dialog with total statistics for the selected books.
+
+## [1.14.1] - 2025-10-15
+### Fixed
+- nltk_lite/english.pickle needs to be binary, windows eol treatment broke it.
+
+## [1.14.0] - 2025-10-10
+### Fixed
+- Goodreads page count web scraping broken from website changes.
+### Changed
+- Updated translations
+
+## [1.13.7] - 2025-08-03
+### Added
+- Arabic translation
+- Portuguese translation
+### Changed
+- Add custom column requirement types to tooltips on dialog.
+
+## [1.13.6] - 2024-04-07
+### Changed
+- Use podofo rather than pdfinfo to retrieve pdf page count. Shoudl fix issues for some users having problems with pdfinfo.exe
+### Fixed
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
+
 ## [1.13.5] - 2024-02-13
 ### Added
 - Finnish translation

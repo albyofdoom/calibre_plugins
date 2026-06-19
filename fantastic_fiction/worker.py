@@ -98,6 +98,7 @@ class Worker(Thread): # Get details
 
         mi = Metadata(title, authors)
         mi.set_identifier('ff', ff_id)
+        mi.language = 'eng'
         self.ff_id = ff_id
 
         try:
@@ -134,7 +135,7 @@ class Worker(Thread): # Get details
         self.result_queue.put(mi)
 
     def parse_fantastic_fiction_id(self, url):
-        return re.search(self.plugin.BASE_URL + '/(.*)\.htm', url).groups(0)[0]
+        return re.search(self.plugin.BASE_URL + r'/(.*)\.htm', url).groups(0)[0]
 
     def parse_title(self, root):
         title_node = root.xpath('//h1[@itemprop="name"]')
@@ -145,7 +146,7 @@ class Worker(Thread): # Get details
         title = root.xpath('//head/title')
         if title:
             self.log('parse_series - have title - text="%s"' % title[0].text.strip())
-            series_match = re.search('\((.*), book ([\.\d+]+)\)', title[0].text.strip())
+            series_match = re.search(r'\((.*), book ([\.\d+]+)\)', title[0].text.strip())
             if series_match:
                 series_name = series_match.groups(0)[0]
                 series_index = series_match.groups(0)[1]

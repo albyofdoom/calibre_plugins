@@ -101,13 +101,14 @@ class GoodreadsSyncAction(InterfaceAction):
                 self.create_action_with_users_sub_menu(m, _('Sync from shelf')+'...', 'sync', 'images/sync_from_shelf.png')
             if c.get(cfg.KEY_DISPLAY_VIEW_SHELF, True):
                 m.addSeparator()
-                self.create_sub_menu_for_users_action(m, _('View shelf'), 'view', 'images/view_shelf.png')
+                self.create_sub_menu_for_users_action(m, _('View shelf'), 'images/view_shelf.png')
             m.addSeparator()
 
             # Create menus for linking to Goodreads and working with linked books
             create_menu_action_unique(self, m, _('Link to Goodreads')+'...', 'images/link_add.png',
                     _('Add, replace or clear link to a Goodreads book'),
                     triggered=self.search_goodreads_to_link_book)
+            m.addSeparator()
             self.linked_book_submenu = m.addMenu(get_icon('images/link.png'), _('Linked book'))
 
             create_menu_action_unique(self, self.linked_book_submenu, _('View linked book'),
@@ -170,7 +171,7 @@ class GoodreadsSyncAction(InterfaceAction):
                                      shortcut_name=unique_name, unique_name=unique_name,
                                      triggered=triggered_action)
 
-    def create_sub_menu_for_users_action(self, parent_menu, title, action, image_name):
+    def create_sub_menu_for_users_action(self, parent_menu, title, image_name):
         sub_menu = parent_menu.addMenu(get_icon(image_name), title)
         sub_menu.setStatusTip(title)
         # If we have more than one user, define a second level sub-menu with user names
@@ -178,12 +179,12 @@ class GoodreadsSyncAction(InterfaceAction):
             for user_name in sorted(self.users.keys()):
                 user_sub_menu = sub_menu.addMenu(get_icon('user_profile.png'), _('User: {0}').format(user_name))
                 user_sub_menu.setStatusTip(user_sub_menu.title())
-                self.create_sub_menu_for_shelves_action(user_sub_menu, user_name, title, action)
+                self.create_sub_menu_for_shelves_action(user_sub_menu, user_name, title)
         else:
             user_name = list(self.users.keys())[0]
-            self.create_sub_menu_for_shelves_action(sub_menu, user_name, title, action)
+            self.create_sub_menu_for_shelves_action(sub_menu, user_name, title)
 
-    def create_sub_menu_for_shelves_action(self, parent_menu, user_name, title, action):
+    def create_sub_menu_for_shelves_action(self, parent_menu, user_name, title):
         user_info = self.users[user_name]
         shelves = user_info.get(cfg.KEY_SHELVES)
         if shelves:
@@ -356,11 +357,12 @@ class GoodreadsSyncAction(InterfaceAction):
 
 
     def _get_shelves_valid_for_sync(self, user_name):
-        # We will only allow syncing to shelves that have either actions or sync of rating/date read
+        # We will only allow syncing to shelves that have either actions or sync of rating/date read/review text
         user_info = self.users[user_name]
         user_shelves = user_info.get(cfg.KEY_SHELVES, [])
         rating_column = cfg.plugin_prefs[cfg.STORE_PLUGIN].get(cfg.KEY_RATING_COLUMN, None)
         date_read_column = cfg.plugin_prefs[cfg.STORE_PLUGIN].get(cfg.KEY_DATE_READ_COLUMN, None)
+        review_text_column = cfg.plugin_prefs[cfg.STORE_PLUGIN].get(cfg.KEY_REVIEW_TEXT_COLUMN, None)
         sync_shelves = []
         for shelf in user_shelves:
             if len(shelf.get(cfg.KEY_SYNC_ACTIONS, [])) > 0:
@@ -368,6 +370,8 @@ class GoodreadsSyncAction(InterfaceAction):
             elif rating_column and shelf.get(cfg.KEY_SYNC_RATING, False):
                 sync_shelves.append(shelf)
             elif date_read_column and shelf.get(cfg.KEY_SYNC_DATE_READ, False):
+                sync_shelves.append(shelf)
+            elif review_text_column and shelf.get(cfg.KEY_SYNC_REVIEW_TEXT, False):
                 sync_shelves.append(shelf)
         return sync_shelves
 
@@ -412,11 +416,12 @@ class GoodreadsSyncAction(InterfaceAction):
                 # a different Goodreads id for a Calibre book.
                 db.set_identifier(orig_calibre_id, 'goodreads', '', commit=False)
                 # Be careful when updating caches as may have already overwritten data
-                if cb_cache[orig_calibre_id] == goodreads_id:
+                if cb_cache.get(orig_calibre_id) == goodreads_id:
                     del cb_cache[orig_calibre_id]
                 # We need to maintain our in-memory cache of mapped ids.
                 calibre_ids_mapped = gr_cache.get(goodreads_id, [])
-                calibre_ids_mapped.remove(orig_calibre_id)
+                if orig_calibre_id in calibre_ids_mapped:
+                    calibre_ids_mapped.remove(orig_calibre_id)
                 if len(calibre_ids_mapped) == 0:
                     del gr_cache[goodreads_id]
                 else:

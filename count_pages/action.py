@@ -3,6 +3,7 @@ from __future__ import unicode_literals, division, absolute_import, print_functi
 __license__   = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
+import os
 from functools import partial
 try:
     from qt.core import QToolButton, QMenu
@@ -25,7 +26,7 @@ from calibre_plugins.count_pages.common_icons import set_plugin_icon_resources, 
 from calibre_plugins.count_pages.common_menus import unregister_menu_actions, create_menu_action_unique
 from calibre_plugins.count_pages.common_dialogs import ProgressBarDialog
 from calibre_plugins.count_pages.jobs import call_plugin_callback
-from calibre_plugins.count_pages.dialogs import QueueProgressDialog
+from calibre_plugins.count_pages.dialogs import QueueProgressDialog, TotalStatisticsDialog
 
 
 class CountPagesAction(InterfaceAction):
@@ -80,7 +81,7 @@ class CountPagesAction(InterfaceAction):
         if len(download_sources[0]) < 3:
             download_sources = cfg.DEFAULT_STORE_VALUES[cfg.KEY_DOWNLOAD_SOURCES]
         
-        create_menu_action_unique(self, m, _('&Estimate page/word counts'), 'images/estimate.png',
+        create_menu_action_unique(self, m, _('&Estimate page/word counts'), 'images/count.png',
                                   triggered=partial(self._count_pages_on_selected, 'Estimate'))
         m.addSeparator()
         if show_try_all_sources:
@@ -96,6 +97,9 @@ class CountPagesAction(InterfaceAction):
 
         if show_download_separator:
             m.addSeparator()
+        create_menu_action_unique(self, m, _('&Statistic totals for selected books'), 'images/estimate.png',
+                                  triggered=self._show_totals_for_selected)
+        m.addSeparator()
         create_menu_action_unique(self, m, _('&Customize plugin')+'...', 'config.png',
                                   shortcut=False, triggered=self.show_configuration)
         create_menu_action_unique(self, m, _('&Help'), 'help.png',
@@ -141,6 +145,27 @@ class CountPagesAction(InterfaceAction):
             return
 
         self._do_count_pages(book_ids, statistics_cols_map, page_count_mode=mode, download_source=download_source)
+
+    def _show_totals_for_selected(self):
+        if not self.is_library_selected:
+            return
+        rows = self.gui.library_view.selectionModel().selectedRows()
+        if not rows or len(rows) == 0 :
+            return
+        book_ids = self.gui.library_view.get_selected_ids()
+        
+        statistics_to_run = [k for k in ALL_STATISTICS.keys()]
+        any_valid, statistics_cols_map = self._get_column_validity(statistics_to_run)
+        if not any_valid:
+            if not question_dialog(self.gui, _('Configure plugin'), '<p>'+
+                _('You must specify custom column(s) first. Do you want to configure this now?'),
+                show_copy_button=False):
+                return
+            self.show_configuration()
+            return
+
+        # Iterate over all the selected books and sum up the statistics
+        self._do_show_totals(book_ids, statistics_cols_map)
 
     def _get_column_validity(self, statistics_to_run):
         '''
@@ -204,9 +229,6 @@ class CountPagesAction(InterfaceAction):
         self._do_count_pages(book_ids, statistics_cols_map, page_count_mode=page_count_mode, download_source=download_source)
 
     def _do_count_pages(self, book_ids, statistics_cols_map, page_count_mode='Estimate', download_source=None):
-        # Create a temporary directory to copy all the ePubs to while scanning
-        tdir = PersistentTemporaryDirectory('_count_pages', prefix='')
-
         # Queue all the books and kick off the job
         c = cfg.plugin_prefs[cfg.STORE_NAME]
         db = self.gui.current_db
@@ -221,41 +243,94 @@ class CountPagesAction(InterfaceAction):
                                    cfg.DEFAULT_LIBRARY_VALUES[cfg.KEY_CUSTOM_CHARS_PER_PAGE])
         icu_wordcount = c.get(cfg.KEY_USE_ICU_WORDCOUNT,
                               cfg.DEFAULT_STORE_VALUES[cfg.KEY_USE_ICU_WORDCOUNT])
-        QueueProgressDialog(self.gui, book_ids, tdir, statistics_cols_map,
+        QueueProgressDialog(self.gui, book_ids, statistics_cols_map,
                             pages_algorithm, custom_chars_per_page, overwrite_existing, use_preferred_output, 
                             icu_wordcount, self._queue_job, db, page_count_mode=page_count_mode, download_source=download_source)
 
-    def _queue_job(self, tdir, books_to_scan, statistics_cols_map, pages_algorithm, 
+    def _queue_job(self, books_to_scan, statistics_cols_map, pages_algorithm, 
                    custom_chars_per_page, icu_wordcount, page_count_mode='Estimate', download_source=None):
         if not books_to_scan:
-            if tdir:
-                # All failed so cleanup our temp directory
-                remove_dir(tdir)
             return
 
+        c = cfg.plugin_prefs[cfg.STORE_NAME]
+        batch_size = c.get(cfg.KEY_BATCH_SIZE, cfg.DEFAULT_STORE_VALUES[cfg.KEY_BATCH_SIZE])
+        batches = self._split_jobs([b[0] for b in books_to_scan], batch_size)
+        db = self.gui.current_db
+        
+        for i, batch_ids in enumerate(batches):
+            batch_tdir = PersistentTemporaryDirectory('_count_pages_batch_{0}'.format(i), prefix='')
+            try:
+                # Copy only this batch's books to the batch temp directory
+                batch_books = self._copy_batch_files(books_to_scan, batch_ids, batch_tdir, db)
+                
+                # Create and queue the job
+                self._create_batch_job(batch_books, batch_tdir, statistics_cols_map, 
+                                      pages_algorithm, custom_chars_per_page, icu_wordcount,
+                                      page_count_mode, download_source, i + 1, len(batches))
+            except Exception as e:
+                print("Error processing batch {0}: {1}".format(i, e))
+                remove_dir(batch_tdir)
+        
+        self.gui.status_bar.show_message(_('Counting statistics in %d books') % len(books_to_scan))
+        self.plugin_callback = None
+
+    def _copy_batch_files(self, books_to_scan, batch_ids, batch_tdir, db):
+        '''Copy only this batch's books to the batch temp directory'''
+        batch_books = []
+        for book_id, title_author, format_code, download_sources, statistics_to_run in books_to_scan:
+            if book_id in batch_ids:
+                # Copy the book file if a format was specified (not download-only)
+                dest_file = None
+                if format_code:
+                    dest_file = os.path.join(batch_tdir, '{0}.{1}'.format(book_id, format_code))
+                    try:
+                        with open(dest_file, 'w+b') as f:
+                            db.copy_format_to(book_id, format_code.upper(), f, index_is_id=True)
+                    except Exception as e:
+                        print("Error copying format {0} for book {1}: {2}".format(format_code, book_id, e))
+                        continue
+                batch_books.append((book_id, title_author, dest_file, download_sources, statistics_to_run))
+        return batch_books
+
+    def _create_batch_job(self, batch_books, batch_tdir, statistics_cols_map, 
+                         pages_algorithm, custom_chars_per_page, icu_wordcount,
+                         page_count_mode, download_source, batch_num, total_batches):
+        '''Create and queue a batch job with the appropriate parameters'''
         func = 'arbitrary_n'
         cpus = self.gui.job_manager.server.pool_size
         args = ['calibre_plugins.count_pages.jobs', 'do_count_statistics',
-                (books_to_scan, pages_algorithm, self.nltk_pickle, custom_chars_per_page,
-                 icu_wordcount, page_count_mode, download_source, cpus)]
-        desc = _('Count Page/Word Statistics')
+                (batch_books, pages_algorithm, self.nltk_pickle, custom_chars_per_page,
+                icu_wordcount, page_count_mode, download_source, cpus)]
+        
+        desc = _('Count Page/Word Statistics') + (' (%d of %d)' % (batch_num, total_batches))
         job = self.gui.job_manager.run_job(
                 self.Dispatcher(self._get_statistics_completed), func, args=args,
                     description=desc)
-        job.tdir = tdir
+        
+        # Attach metadata to job
+        job.tdir = batch_tdir
         job.statistics_cols_map = statistics_cols_map
         job.page_count_mode = page_count_mode
         job.download_source = download_source
         job.plugin_callback = self.plugin_callback
-        self.gui.status_bar.show_message(_('Counting statistics in %d books') % len(books_to_scan))
-        self.plugin_callback = None
+
+    def _split_jobs(self, ids, batch_size):
+        ans = []
+        ids = list(ids)
+        while ids:
+            jids = ids[:batch_size]
+            ans.append(jids)
+            ids = ids[batch_size:]
+        return ans
 
     def _get_statistics_completed(self, job):
+        # Clean up the batch temp directory
         if job.tdir:
             remove_dir(job.tdir)
+        
         if job.failed:
             return self.gui.job_exception(job, dialog_title=_('Failed to count statistics'))
-        self.gui.status_bar.show_message(_('Counting statistics completed'), 3000)
+        self.gui.status_bar.show_message(_('Counting statistics batch completed'), 3000)
         book_statistics_map = job.result
 
         if len(book_statistics_map) == 0:
@@ -286,10 +361,14 @@ class CountPagesAction(InterfaceAction):
     def _update_database_columns(self, payload):
         (statistics_cols_map, book_statistics_map) = payload
  
-        self.progressbar(_("Updating statistics"), on_top=True)
         total_books = len(book_statistics_map)
-        self.show_progressbar(total_books)
-        self.set_progressbar_label(_("Updating"))
+        # It is possible the progress dialog is currently visible from another thread running another batch
+        # So we won't display for this batch if that is the case
+        was_progress_visible = hasattr(self, 'pb') and self.pb and self.pb.isVisible()
+        if not was_progress_visible:
+            self.progressbar(_('Updating statistics'), on_top=True)
+            self.show_progressbar(total_books)
+            self.set_progressbar_label(_('Updating'))
         update_if_unchanged = cfg.plugin_prefs[cfg.STORE_NAME].get(cfg.KEY_UPDATE_IF_UNCHANGED, 
                                                     cfg.DEFAULT_STORE_VALUES[cfg.KEY_UPDATE_IF_UNCHANGED])
  
@@ -301,8 +380,9 @@ class CountPagesAction(InterfaceAction):
                                for col_name in statistics_cols_map.values() if col_name)
         for book_id, statistics in book_statistics_map.items():
             if db_ref.has_id(book_id):
-                self.set_progressbar_label(_("Updating") + " " + db_ref.field_for("title", book_id))
-                self.increment_progressbar()
+                if not was_progress_visible:
+                    self.set_progressbar_label(_('Updating') + ' ' + db_ref.field_for("title", book_id))
+                    self.increment_progressbar()
                 for statistic, value in statistics.items():
                     col_name = statistics_cols_map[statistic]
                     
@@ -312,17 +392,60 @@ class CountPagesAction(InterfaceAction):
             else:
                 print("Book with id %d is no longer in the library." % book_id)
 
-        for col_name, book_statistcs_map in col_name_books_map.items():
-            db_ref.set_field(col_name, book_statistcs_map)
+        for col_name, book_statistics_map in col_name_books_map.items():
+            db_ref.set_field(col_name, book_statistics_map)
 
         if book_ids_to_update:
             print("About to refresh GUI - book_ids_to_update=", book_ids_to_update)
             self.gui.library_view.model().refresh_ids(book_ids_to_update)
             self.gui.library_view.model().refresh_ids(book_ids_to_update,
                                       current_row=self.gui.library_view.currentIndex().row())
-#             db.refresh_ids(book_ids_to_update, current_row=self.gui.current_view().selectionModel().selectedRows())
 
         self.hide_progressbar()
+
+    def _do_show_totals(self, book_ids, statistics_cols_map):
+        totals = {}
+        counts = {}
+        totals[_('Selected')] = len(book_ids)
+        labels_map = dict((col_name, self.gui.current_db.field_metadata.key_to_label(col_name))
+                               for col_name in statistics_cols_map.values() if col_name)
+        missing_statistic = False
+        for book_id in book_ids:
+            if not self.gui.current_db.has_id(book_id):
+                print("Book with id %d is no longer in the library." % book_id)
+                continue
+            for statistic, col_name in statistics_cols_map.items():
+                if col_name:
+                    value = self.gui.current_db.get_custom(book_id, label=labels_map[col_name], index_is_id=True)
+                    book_stat_total = 0
+                    if value is not None and value != '':
+                        try:
+                            book_stat_total = float(value)
+                        except ValueError:
+                            missing_statistic = True
+                            continue
+                    else:
+                        missing_statistic = True
+                        continue
+                    if statistic in totals:
+                        totals[statistic] += book_stat_total
+                        counts[statistic] += 1
+                    else:
+                        totals[statistic] = book_stat_total
+                        counts[statistic] = 1
+
+        # Calculate averages for all the gathered statistics except the Selected count
+        averages = {}
+        for statistic in statistics_cols_map.keys():
+            if statistic in totals and statistic in counts and counts[statistic] > 0:
+                averages[statistic] = totals[statistic] / counts[statistic]
+        # Some fudgery where for the Flesch statistics we show averages only
+        for stat in [cfg.STATISTIC_FLESCH_READING, cfg.STATISTIC_FLESCH_GRADE, cfg.STATISTIC_GUNNING_FOG]:
+            if stat in totals:
+                totals[stat] = -1  # Indicate no total available
+        
+        d = TotalStatisticsDialog(self.gui, totals, averages, missing_statistic)
+        d.exec_()
 
     def show_configuration(self):
         self.interface_action_base_plugin.do_user_config(self.gui)

@@ -3,7 +3,7 @@ from __future__ import unicode_literals, division, absolute_import, print_functi
 __license__   = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
-import os
+import os, re
 from functools import partial
 
 # calibre Python 3 compatibility.
@@ -133,8 +133,8 @@ class SearchTheInternetAction(InterfaceAction):
                 self.search_web_for_book(row.row(), tokenised_url, encoding, method)
 
     def search_web_for_book(self, row, tokenised_url, encoding, method):
-        # Take a copy of the metadata so no risk of messing with anything important in memory!
-        mi = self.db.get_metadata(row).deepcopy_metadata()
+        # Get a readonly copy of metadata so no risk of messing with anything important in memory!
+        mi = self.db.new_api.get_proxy_metadata(self.db.id(row))
         if not encoding:
             encoding = 'utf-8'
         self.open_tokenised_url(tokenised_url, encoding, method, mi)
@@ -145,26 +145,31 @@ class SearchTheInternetAction(InterfaceAction):
                                 _('This menu item has not been configured with a url.'), show=True)
         # Convert the book metadata into values that are more safely searchable
         if mi.title:
-            mi.title = self.convert_title_to_search_text(mi.title, encoding, method)
+            mi.title = self.convert_title_to_search_text(mi.title)
         # Will only use the first author for the lookup if there are multiple
         if mi.authors:
-            mi.authors = [self.convert_author_to_search_text(mi.authors[0], encoding, method)]
+            mi.authors = [self.convert_author_to_search_text(mi.authors[0])]
 
-        # Convert other fields such as publisher in case user used them in their templates
-        for k in mi.all_field_keys():
+        # Originally this plugin url encoded the metadata fields before submitting to the template
+        # However the flaw with this is the template function could fail due to that encoding
+        # or custom columns etc would also not get properly encoded.
+        # My solution is to evaluate the tokens individually from the url, then url encode their result
+        # before replacing back in the url in place of the token.
+        # So https://foo.com/search?query={title}+{author} would strip out {title} and {author} respectively.
+        url = tokenised_url
+        for token in re.findall(r"\{.*?\}", tokenised_url):
             try:
-                val = mi.get(k, None)
-                if val and k not in ['author', 'authors', 'title']:
-                    new_val = self.convert_to_search_text(val, encoding, method)
-                    if new_val != val:
-                        #debug_print('Sanitising: k=', k, ' val=', val, ' new_val=', new_val)
-                        mi.set(k, val)
+                evaluated = template_formatter.safe_format(token, mi, 'STI template error', mi)
+                # An additional hack to ensure {identifiers:select(doi)} is not url encoded replacing the / with %2F
+                if 'identifiers:select' in token:
+                    safe_value = evaluated
+                else:
+                    safe_value = self.convert_to_search_text(evaluated, encoding, method)
+                url = url.replace(token, safe_value)
             except:
                 continue
 
         debug_print("open_tokenised_url - tokenised_url=", tokenised_url)
-        debug_print("open_tokenised_url - mi=", mi)
-        url = template_formatter.safe_format(tokenised_url, mi, 'STI template error', mi)
         debug_print("open_tokenised_url - url=", url)
 
         if method == 'POST':
@@ -230,8 +235,7 @@ class SearchTheInternetAction(InterfaceAction):
     def convert_to_search_text(self, text, encoding, method):
         try:
             # First we strip characters we will definitely not want to pass through.
-            # Periods from author initials etc do not need to be supplied
-            new_text = text.replace('.', '').replace('&', '').replace('  ',' ')
+            new_text = text.replace('&', '').replace('  ',' ')
             # Now encode the text using Python function with chosen encoding - but only for GET not POST
             if method == 'GET':
                 new_text = quote_plus(new_text.encode(encoding, 'ignore'))
@@ -241,13 +245,13 @@ class SearchTheInternetAction(InterfaceAction):
         except:
             return text
 
-    def convert_title_to_search_text(self, title, encoding, method):
+    def convert_title_to_search_text(self, title):
         # Ampersands are going to cause grief so strip them.
         if '&' in title:
             title = title.replace('&','')
-        return self.convert_to_search_text(title, encoding, method)
+        return title
 
-    def convert_author_to_search_text(self, author, encoding, method):
+    def convert_author_to_search_text(self, author):
         # We want to convert the author name to FN LN format if it is stored LN, FN
         # We do this because some websites (Kobo) have crappy search engines that
         # will not match Adams+Douglas but will match Douglas+Adams
@@ -268,7 +272,7 @@ class SearchTheInternetAction(InterfaceAction):
                 surname = parts.pop(0)
                 parts.append(surname)
                 fn_ln_author = ' '.join(parts).strip()
-        return self.convert_to_search_text(fn_ln_author, encoding, method)
+        return fn_ln_author
 
     def show_configuration(self):
         self.interface_action_base_plugin.do_user_config(self.gui)

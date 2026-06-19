@@ -31,7 +31,7 @@ from calibre_plugins.generate_cover.common_widgets import CustomColumnComboBox
 HELP_URL = 'https://github.com/kiwidude68/calibre_plugins/wiki/Generate-Cover'
 
 STORE_SCHEMA_VERSION = 'SchemaVersion'
-DEFAULT_SCHEMA_VERSION = 2.21
+DEFAULT_SCHEMA_VERSION = 2.22
 
 PREFS_NAMESPACE = 'GenerateCoverPlugin'
 PREFS_KEY_SETTINGS = 'settings'
@@ -55,7 +55,7 @@ KEY_SIZE = 'size'
 KEY_MARGINS = 'margins'
 KEY_BORDERS = 'borders'
 KEY_COLORS = 'colors'
-KEY_COLOR_APPLY_STROKE = 'colorApplyStroke'
+KEY_FILL_COLORS_LINKED = 'fillColorsLinked'
 KEY_FONTS = 'fonts'
 KEY_FONTS_LINKED = 'fontsLinked'
 KEY_FONTS_AUTOREDUCED = 'fontsAutoReduced'
@@ -85,8 +85,9 @@ DEFAULT_CURRENT = {
     KEY_MARGINS: { 'top': 10, 'bottom': 10, 'left': 0, 'right': 0, 'image': 10, 'text': 30 },
     KEY_BORDERS: { 'coverBorder': 0, 'imageBorder': 0, },
     KEY_COLORS: { 'border': '#000000', 'background': '#ffffff',
-                     'fill': '#000000', 'stroke': '#000000' },
-    KEY_COLOR_APPLY_STROKE: False,
+                    'title_fill': '#000000', 'author_fill': '#000000',
+                    'series_fill': '#000000', 'custom_fill': '#000000' },
+    KEY_FILL_COLORS_LINKED: True,
     KEY_FONTS: { 'title':  { 'name': None, 'size': 46, 'align': 'center' },
                  'author': { 'name': None, 'size': 36, 'align': 'center' },
                  'series': { 'name': None, 'size': 36, 'align': 'center' },
@@ -282,6 +283,24 @@ def migrate_config_setting(schema_version, setting_name, setting, is_current=Fal
         if DEBUG:
             prints('Generate Cover - Upgrading to 2.21 schema for setting: ',setting_name)
         setting[KEY_IMAGE_FILE] = migrate_image_file(setting[KEY_IMAGE_FILE])
+
+    # Version 2.2.2 added per-text-type fill colors and a checkbox to use same color for all
+    if schema_version < 2.22:
+        if DEBUG:
+            prints('Generate Cover - Upgrading to 2.22 schema for setting: ',setting_name)
+        colors = setting.get(KEY_COLORS, {})
+        # Use the existing 'fill' color as the default for all text types
+        existing_fill = colors.get('fill', '#000000')
+        # Remove the old fill color if it exists
+        if 'fill' in colors:
+            del colors['fill']
+        colors['title_fill'] = existing_fill
+        colors['author_fill'] = existing_fill
+        colors['series_fill'] = existing_fill
+        colors['custom_fill'] = existing_fill
+        setting[KEY_COLORS] = colors
+        # Default to using the same fill color for backward compatibility
+        setting[KEY_FILL_COLORS_LINKED] = True
     return setting
 
 

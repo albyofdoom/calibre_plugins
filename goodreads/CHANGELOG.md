@@ -1,8 +1,41 @@
 # Goodreads Change Log
 
+## [1.9.1] - 2026-06-14
+### Fixed
+- Retrieve book detail pages through the `.xml` URL variant, which returns the
+  full metadata page while the extensionless URL is blocked by AWS WAF.
+
+## [1.9.0] - 2026-05-17
+### Fixed
+- Bypass AWS WAF protection preventing search results from being returned (not publicly released)
+
+## [1.8.5] - 2026-05-07
+### Added
+- Korean translation
+- Swedish translation
+
+### Fixed
+- Get ASIN option now only accepts valid Kindle ASIN starting with B0/10 chars long, not all ISBN-10 values
+
+## [1.8.4] - 2026-02-09
+### Added
+- Arabic translation
+
+## [1.8.3] - 2025-04-18
+### Fixed
+- Fix Get ASIN option so turning it off will no longer retrieve the Amazon identifier.
+
+## [1.8.2] - 2024-06-13
+### Fixed
+- Fix casing of goodreads identifier in code so right-click remove in calibre feature will work (Terisa).
+
+## [1.8.1] - 2023-03-24
+### Fixed
+- Author metadata change of just taking the primary contributor (first) when a book has no contributors with a role of Author like comics.
+
 ## [1.8.0] - 2023-03-19
 ### Fixed
-- Changed the source from where the authors metaadata is being scraped from, to better respect turning off the `Get all contributing authors` setting so as to not always return all authors. Note pseudonyms for authors will return both names. -([#53][i53])
+- Changed the source from where the authors metadata is being scraped from, to better respect turning off the `Get all contributing authors` setting so as to not always return all authors. Note pseudonyms for authors will return both names. -([#53][i53])
 
 [i53]: https://github.com/kiwidude68/calibre_plugins/issues/53
 

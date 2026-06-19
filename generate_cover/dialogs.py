@@ -952,8 +952,13 @@ DIC_name_font = [
 DIC_name_color = [
     ('Background', _('Background')),
     ('Border', _('Border')),
-    ('Fill', _('Fill')),
-    ('Stroke', _('Stroke')),
+]
+
+DIC_name_text_fill_color = [
+    ('Title', _('Title')),
+    ('Author', _('Author')),
+    ('Series', _('Series')),
+    ('Custom', _('Custom')),
 ]
 
 class FontsTab(QWidget):
@@ -978,6 +983,7 @@ class FontsTab(QWidget):
             font_label.setToolTip(_('Select a font and specify a size in pixels.\n'
                                     'If font set to \'Default\', uses the tweak value from\n'
                                     '\'generate_cover_title_font\' if present.'))
+            setattr(self, '_fontLabel' + name, font_label)
             fonts_grid_layout.addWidget(font_label, row, 0, 1, 1)
             font_combo = FontComboBox(self)
             setattr(self, '_font' + name, font_combo)
@@ -1019,31 +1025,64 @@ class FontsTab(QWidget):
         for name, display_name in DIC_name_color:
             setattr(self, '_tclabel' + name, QLabel(display_name+':', self))
             colors_grid_layout.addWidget(getattr(self, '_tclabel' + name), row, 0, 1, 1)
+
             color_ledit = ReadOnlyLineEdit('', self)
             setattr(self, '_color' + name, color_ledit)
             colors_grid_layout.addWidget(color_ledit, row, 1, 1, 1)
+
             clear_color_button = QToolButton(self)
             clear_color_button.setIcon(QIcon(I('trash.png')))
             clear_color_button.setToolTip(_('Reset %s color') % display_name.lower())
             clear_color_button.clicked.connect(partial(self.reset_color, color_ledit, name))
             setattr(self, '_clearColor' + name, clear_color_button)
             colors_grid_layout.addWidget(clear_color_button, row, 2, 1, 1)
+
             select_button = QPushButton('...', self)
             select_button.setToolTip(_('Select a %s color') % display_name.lower())
             select_button.clicked.connect(partial(self.pick_color, color_ledit))
             setattr(self, '_selectColor' + name, select_button)
             fm = select_button.fontMetrics()
-            select_button.setFixedWidth(fm.width('...') + 10)
+            select_button.setFixedWidth(fm.width('...') + 16)
             colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
-            row += 1
 
-        self.apply_stroke_checkbox = QCheckBox(_('Apply'))
-        self.apply_stroke_checkbox.setToolTip(_('When checked, stroke color is drawn around text'))
-        self.apply_stroke_checkbox.stateChanged[int].connect(self.changed)
-        self.apply_stroke_checkbox.setVisible(False)
-        for x in '_color _clearColor _selectColor _tclabel'.split():
-            getattr(self, x + 'Stroke').setVisible(False)
-        colors_grid_layout.addWidget(self.apply_stroke_checkbox, row-1, 4, 1, 1)
+            row += 1
+        
+        colors_layout.addSpacing(10)
+        # Add individual fill color controls for each text type
+        for name, display_name in DIC_name_text_fill_color:
+            label = QLabel(display_name + ' Fill:', self)
+            setattr(self, '_fillLabel' + name, label)
+            colors_grid_layout.addWidget(label, row, 0, 1, 1)
+            
+            color_ledit = ReadOnlyLineEdit('', self)
+            setattr(self, '_fillColor' + name, color_ledit)
+            colors_grid_layout.addWidget(color_ledit, row, 1, 1, 1)
+            
+            clear_button = QToolButton(self)
+            clear_button.setIcon(QIcon(I('trash.png')))
+            clear_button.setToolTip(_('Reset %s fill color') % display_name.lower())
+            clear_button.clicked.connect(partial(self.reset_fill_color, color_ledit, name))
+            setattr(self, '_clearFillColor' + name, clear_button)
+            colors_grid_layout.addWidget(clear_button, row, 2, 1, 1)
+            
+            select_button = QPushButton('...', self)
+            select_button.setToolTip(_('Select %s fill color') % display_name.lower())
+            select_button.clicked.connect(partial(self.pick_color, color_ledit))
+            setattr(self, '_selectFillColor' + name, select_button)
+            fm = select_button.fontMetrics()
+            select_button.setFixedWidth(fm.width('...') + 16)
+            colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
+            
+            row += 1
+        colors_grid_layout.setColumnStretch(4, 1)
+
+        # Add checkbox for using same fill color for all text
+        self.use_same_fill_color_checkbox = QCheckBox(_('Use the same fill color for all text'))
+        self.use_same_fill_color_checkbox.setToolTip(_('When checked, the fill color is used for all text.\n'
+                                                        'When unchecked, you can set different fill colors for each text type.'))
+        self.use_same_fill_color_checkbox.stateChanged[int].connect(self.same_fill_color_changed)
+        colors_layout.addWidget(self.use_same_fill_color_checkbox)
+        
         main_layout.insertStretch(-1)
 
     def _create_align_button(self, display_name):
@@ -1079,6 +1118,15 @@ class FontsTab(QWidget):
         color_ledit.setText(default_color)
         self.changed.emit()
 
+    def reset_fill_color(self, color_ledit, text_type):
+        saved_setting = self.parent_dialog.get_saved_setting()
+        colors = saved_setting[cfg.KEY_COLORS]
+        # Use the name like 'title_fill', 'author_fill', etc.
+        key = text_type.lower() + '_fill'
+        default_color = colors.get(key, '#000000')
+        color_ledit.setText(default_color)
+        self.changed.emit()
+
     def pick_color(self, color_ledit):
         color = QColor(unicode(color_ledit.text()))
         picked_color = QColorDialog.getColor(color, self)
@@ -1086,17 +1134,48 @@ class FontsTab(QWidget):
             color_ledit.setText(picked_color.name())
             self.changed.emit()
 
+    def same_fill_color_changed(self):
+        is_checked = self.use_same_fill_color_checkbox.isChecked()
+        getattr(self, '_fillLabelAuthor').setStyleSheet("")
+        getattr(self, '_fillLabelSeries').setStyleSheet("")
+        getattr(self, '_fillLabelCustom').setStyleSheet("")
+        getattr(self, '_selectFillColorAuthor').setEnabled(True)
+        getattr(self, '_selectFillColorSeries').setEnabled(True)
+        getattr(self, '_selectFillColorCustom').setEnabled(True)
+        if is_checked:
+            self.set_other_fill_colors_linked_to_title_fill_color()
+            getattr(self, '_fillLabelAuthor').setStyleSheet("color: gray")
+            getattr(self, '_fillLabelSeries').setStyleSheet("color: gray")
+            getattr(self, '_fillLabelCustom').setStyleSheet("color: gray")
+            getattr(self, '_selectFillColorAuthor').setEnabled(False)
+            getattr(self, '_selectFillColorSeries').setEnabled(False)
+            getattr(self, '_selectFillColorCustom').setEnabled(False)
+        self.changed.emit()
+
+    def set_other_fill_colors_linked_to_title_fill_color(self):
+        title_fill_color = getattr(self, '_fillColorTitle').text()
+        getattr(self, '_fillColorAuthor').setText(title_fill_color)
+        getattr(self, '_fillColorSeries').setText(title_fill_color)
+        getattr(self, '_fillColorCustom').setText(title_fill_color)
+
     def title_font_changed(self):
         if self.fonts_linked_checkbox.isChecked():
             self.set_other_fonts_linked_to_title_font_combo()
         self.changed.emit()
 
-    def fonts_linked_changed(self, state):
+    def fonts_linked_changed(self):
+        is_checked = self.fonts_linked_checkbox.isChecked()
+        getattr(self, '_fontLabelAuthor').setStyleSheet("")
+        getattr(self, '_fontLabelSeries').setStyleSheet("")
+        getattr(self, '_fontLabelCustom').setStyleSheet("")
         getattr(self, '_fontAuthor').setEnabled(True)
         getattr(self, '_fontSeries').setEnabled(True)
         getattr(self, '_fontCustom').setEnabled(True)
-        if state == Qt.Checked:
+        if is_checked:
             self.set_other_fonts_linked_to_title_font_combo()
+            getattr(self, '_fontLabelAuthor').setStyleSheet("color: gray")
+            getattr(self, '_fontLabelSeries').setStyleSheet("color: gray")
+            getattr(self, '_fontLabelCustom').setStyleSheet("color: gray")
             getattr(self, '_fontAuthor').setEnabled(False)
             getattr(self, '_fontSeries').setEnabled(False)
             getattr(self, '_fontCustom').setEnabled(False)
@@ -1309,10 +1388,10 @@ class ContentsTab(QWidget):
         self.custom_label.setIndent(0)
         self.custom_label.setStyleSheet("""padding-top:4px""")
         options_layout.addWidget(self.custom_label, 0, 0, 1, 1)
+        options_layout.setRowStretch(0, 10)
         self.custom_text_ledit = QTextEdit(self)
         self.custom_text_ledit.textChanged.connect(self.changed)
         self.custom_text_ledit.setMinimumHeight(25)
-        self.custom_text_ledit.setMaximumHeight(100)
         options_layout.addWidget(self.custom_text_ledit, 0, 1, 1, 1)
         self.swap_author_checkbox = QCheckBox(_('Swap author LN,FN to FN LN'), self)
         self.swap_author_checkbox.setToolTip(_('Use this option if your authors are stored as LN, FN\n'
@@ -1617,8 +1696,13 @@ class CoverOptionsDialog(SizePersistedDialog):
         for name, display_name in DIC_name_color:
             getattr(self.fonts_tab, '_color'+name).setText(colors[name.lower()])
 
-        is_stroke_applied = self.current.get(cfg.KEY_COLOR_APPLY_STROKE, False)
-        self.fonts_tab.apply_stroke_checkbox.setChecked(is_stroke_applied)
+        # Load the individual fill colors for each text type
+        is_same_fill = self.current.get(cfg.KEY_FILL_COLORS_LINKED, True)
+        self.fonts_tab.use_same_fill_color_checkbox.setChecked(is_same_fill)
+        for name, _ in DIC_name_text_fill_color:
+            fill_key = name.lower() + '_fill'
+            fill_color = colors.get(fill_key, colors.get('fill', '#000000'))
+            getattr(self.fonts_tab, '_fillColor' + name).setText(fill_color)
 
         self.block_updates = False
 
@@ -1682,14 +1766,23 @@ class CoverOptionsDialog(SizePersistedDialog):
 
         border_color = unicode(getattr(self.fonts_tab, '_colorBorder').text()).strip()
         background_color = unicode(getattr(self.fonts_tab, '_colorBackground').text()).strip()
-        is_stroke_applied = self.fonts_tab.apply_stroke_checkbox.isChecked()
-        self.current[cfg.KEY_COLOR_APPLY_STROKE] = is_stroke_applied
-        fill_color = unicode(getattr(self.fonts_tab, '_colorFill').text()).strip()
-        stroke_color = unicode(getattr(self.fonts_tab, '_colorStroke').text()).strip()
-        self.current[cfg.KEY_COLORS] = {'border':     border_color,
-                                        'background': background_color,
-                                        'fill':       fill_color,
-                                        'stroke':     stroke_color }
+        
+        # Collect individual fill colors
+        title_fill = unicode(getattr(self.fonts_tab, '_fillColorTitle').text()).strip()
+        author_fill = unicode(getattr(self.fonts_tab, '_fillColorAuthor').text()).strip()
+        series_fill = unicode(getattr(self.fonts_tab, '_fillColorSeries').text()).strip()
+        custom_fill = unicode(getattr(self.fonts_tab, '_fillColorCustom').text()).strip()
+        
+        self.current[cfg.KEY_COLORS] = {'border':       border_color,
+                                        'background':   background_color,
+                                        'title_fill':   title_fill,
+                                        'author_fill':  author_fill,
+                                        'series_fill':  series_fill,
+                                        'custom_fill':  custom_fill }
+        
+        # Save the use_same_fill_color setting
+        is_same_fill_color = self.fonts_tab.use_same_fill_color_checkbox.isChecked()
+        self.current[cfg.KEY_FILL_COLORS_LINKED] = is_same_fill_color
 
         is_fonts_linked = self.fonts_tab.fonts_linked_checkbox.isChecked()
         self.current[cfg.KEY_FONTS_LINKED] = is_fonts_linked

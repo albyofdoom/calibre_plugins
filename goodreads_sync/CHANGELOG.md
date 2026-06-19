@@ -1,5 +1,60 @@
 # Goodreads Sync Change Log
 
+## [1.17.4] - 2026-05-12
+### Fixed
+- Yet another attempt at getting sync actions to work for both static and column values.
+
+## [1.17.3] - 2026-05-11
+### Fixed
+- Sync actions for numeric columns needing to handle both retrieval from Goodreads and fixed static values.
+
+## [1.17.2] - 2026-05-07
+### Fixed
+- Sync actions for numeric columns having a key error
+
+## [1.17.1] - 2026-04-15
+### Added
+- When editing sync actions it will now support numeric columns e.g. set reading progress column to 100
+
+## [1.17.0] - 2026-04-11
+### Added
+- Added checkboxes to `Sync From Goodreads Shelf` dialog to allow for selective syncing. [@albyofdoom]
+- Reordered columns so that like columns are next to each for easier comparison. [@albyofdoom]
+- Added color highlighting so you can tell at a glance when Goodreads data and Calibre data don't match. [@albyofdoom]
+- Korean translation
+
+## [1.16.13] - 2026-02-09
+### Added
+- Arabic translation
+### Fixed
+- Debug output warning from Python
+- 
+## [1.16.12] - 2025-10-04
+### Changed
+- RECOVER_PARSER removed from Calibre, see https://github.com/kiwidude68/calibre_plugins/issues/131
+
+## [1.16.11] - 2024-11-11
+### Fixed
+- Display the user friendly Goodreads message when attempting an action like Add to shelf if the book is invalidly linked.
+- Additional separator before the Configuration option in popdown menu.
+
+## [1.16.10] - 2024-11-05
+### Fixed
+- Support half stars in the rating column (if the user has that configured for their rating column). The goodreads rating will still be the rounded down value, but it will prevent the calibre value being rounded down/overwritten in this circumstance.
+
+## [1.16.9] - 2024-10-04
+### Fixed
+- Better handling of 404 errors from books not found when linking that have an ISBN
+
+## [1.16.8] - 2024-06-06
+### Fixed
+- One last attempt at fixing key_file issues for linux users. (@bernieke)
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
+
+## [1.16.6] - 2024-05-15
+### Fixed
+- Use `SSLContext` object to pass `key_file` and `cert_file` to `HTTPSConnection` constructor making the plugin Python 3.12 capable. (@StegSchreck)
+
 ## [1.16.5] - 2024-03-17
 ### Updated
 - Spanish translation

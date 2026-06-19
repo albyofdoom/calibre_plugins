@@ -234,11 +234,11 @@ class Worker(Thread): # Get details
             self.log.exception('Error parsing ISBN for url: %r'%self.url)
 
         try:
-            get_asin = cfg.plugin_prefs[cfg.STORE_NAME][cfg.KEY_GET_ASIN]
-            if get_asin is not None:
+            get_asin = cfg.plugin_prefs[cfg.STORE_NAME].get(cfg.KEY_GET_ASIN, False)
+            if get_asin:
                 if book_json:
                     asin = self.parse_asin(book_json)
-                if asin is not None:
+                if asin:
                     mi.set_identifier('amazon', asin)
         except:
             self.log.exception('Error parsing ASIN for url: %r'%self.url)
@@ -314,7 +314,7 @@ class Worker(Thread): # Get details
         self.result_queue.put(mi)
 
     def parse_goodreads_id(self, url):
-        return re.search('/show/(\d+)', url).groups(0)[0]
+        return re.search(r'/show/(\d+)', url).groups(0)[0]
 
     def parse_title(self, book_json):
         if "title" not in book_json:
@@ -365,7 +365,13 @@ class Worker(Thread): # Get details
                 if (role == "Author" or get_all_authors):
                     contributor = secondary["node"]["__ref"]
                     author_contributor_ids.append(contributor[12:]) # strip off "Contributor:""
-        
+
+        if (not author_contributor_ids and not get_all_authors):
+            # We could not find a role = "Author" for this book. That can happen with comics for instance.
+            # In this circumstance just grab the primary contributor as author to use.
+            contributor = primary["node"]["__ref"]
+            author_contributor_ids.append(contributor[12:]) # strip off "Contributor:"
+       
         for contributor_json in contributors_list_json:
             if (contributor_json.get("name") is None):
                 continue
@@ -374,6 +380,8 @@ class Worker(Thread): # Get details
                 author_name = contributor_json["name"]
                 self.log.info('parse_authors - author=%s' % author_name)
                 authors.append(author_name)
+            
+
         return authors
 
     def parse_rating(self, work_json):
@@ -439,6 +447,9 @@ class Worker(Thread): # Get details
             details_json = book_json["details"]
             if "asin" in details_json:
                 asin = details_json["asin"]
+                # ASIN must start with B0 followed by 8 alphanumeric characters. If not valid, discard it.
+                if asin and not re.match(r'^B0[A-Z0-9]{8}$', asin):
+                    asin = None                
         self.log.info("parse_asin: ", asin)
         return asin
 

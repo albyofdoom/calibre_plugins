@@ -3,13 +3,19 @@ from __future__ import unicode_literals, division, absolute_import, print_functi
 __license__   = 'GPL v3'
 __copyright__ = '2011, Grant Drake'
 
-import os, shutil, traceback
+from collections import defaultdict
+import os
+import shutil
+import traceback
+import unicodedata
 
 try:
     load_translations()
 except NameError:
     pass # load_translations() added in calibre 1.9
 
+from calibre.db.fields import CompositeField
+from calibre.ebooks.metadata import title_sort
 from calibre.gui2 import info_dialog, choose_dir, error_dialog
 from calibre.ptempfile import TemporaryDirectory
 from calibre.utils.config import prefs
@@ -34,6 +40,10 @@ class FixCheck(BaseCheck):
             self.fix_author_initials()
         elif menu_key == 'fix_author_ascii':
             self.fix_author_names_to_ascii()
+        elif menu_key == 'fix_author_sort':
+            self.fix_author_sort()
+        elif menu_key == 'fix_title_sort':
+            self.fix_title_sort()
         elif menu_key == 'check_fix_book_size':
             self.check_and_update_file_sizes()
         elif menu_key == 'check_fix_book_paths':
@@ -42,6 +52,10 @@ class FixCheck(BaseCheck):
             self.cleanup_opf_folders()
         elif menu_key == 'fix_mobi_asin':
             self.fix_mobi_asin()
+        elif menu_key == 'fix_normalize_fields':
+            self.fix_normalize_fields()
+        elif menu_key == 'fix_normalize_notes':
+            self.fix_normalize_notes()
         else:
             return error_dialog(self.gui, _('Quality Check failed'),
                                 _('Unknown menu key for %s of \'%s\'')%('FixCheck', menu_key),
@@ -53,19 +67,20 @@ class FixCheck(BaseCheck):
         This operation works only on selected ids, it does not change all author
         occurrences across the library!
         '''
-        def swap_names(a):
-            if ',' in a:
+        def swap_names(a, target_with_comma):
+            if not target_with_comma and ',' in a:
                 parts = a.split(',')
                 if len(parts) <= 1:
                     return a
                 surname = parts[0]
                 return '%s %s' % (' '.join(parts[1:]), surname)
-            else:
+            if target_with_comma and ',' not in a:
                 parts = a.split(None)
                 if len(parts) <= 1:
                     return a
                 surname = parts[-1]
                 return '%s, %s' % (surname, ' '.join(parts[:-1]))
+            return a    # Don't need to change
 
         db = self.gui.current_db
         previous = self.gui.library_view.currentIndex()
@@ -75,7 +90,8 @@ class FixCheck(BaseCheck):
                 authors = db.authors(book_id, index_is_id=True)
                 if authors:
                     authors = [a.strip().replace('|', ',') for a in authors.split(',')]
-                    new_authors = [swap_names(a) for a in authors]
+                    has_comma = ',' in authors[0]
+                    new_authors = [swap_names(a, not has_comma) for a in authors]
                     db.set_authors(book_id, new_authors, notify=False)
 
             self.gui.library_view.model().refresh_ids(book_ids)
@@ -88,7 +104,7 @@ class FixCheck(BaseCheck):
         This operation works only on selected ids, it does not change all author
         occurrences across the library!
         '''
-        def rename_book(book_id, db):
+        def rename_book_author(book_id, db):
             authors = db.authors(book_id, index_is_id=True)
             if authors:
                 authors = [a.strip().replace('|', ',') for a in authors.split(',')]
@@ -104,7 +120,7 @@ class FixCheck(BaseCheck):
         previous = self.gui.library_view.currentIndex()
         book_ids = self.gui.library_view.get_selected_ids()
         if book_ids:
-            d = QualityProgressDialog(self.gui, book_ids, rename_book, self.gui.current_db,
+            d = QualityProgressDialog(self.gui, book_ids, rename_book_author, self.gui.current_db,
                               action_type=_('Reformatting author initials for'))
             self.gui.library_view.model().refresh_ids(book_ids)
             current = self.gui.library_view.currentIndex()
@@ -121,7 +137,7 @@ class FixCheck(BaseCheck):
         '''
         handler = get_udc()
 
-        def rename_book(book_id, db):
+        def rename_book_author(book_id, db):
             authors = db.authors(book_id, index_is_id=True)
             if authors:
                 authors = [a.strip().replace('|', ',') for a in authors.split(',')]
@@ -134,7 +150,7 @@ class FixCheck(BaseCheck):
         previous = self.gui.library_view.currentIndex()
         book_ids = self.gui.library_view.get_selected_ids()
         if book_ids:
-            d = QualityProgressDialog(self.gui, book_ids, rename_book, self.gui.current_db,
+            d = QualityProgressDialog(self.gui, book_ids, rename_book_author, self.gui.current_db,
                               action_type=_('Renaming authors to ascii for'))
             self.gui.library_view.model().refresh_ids(book_ids)
             current = self.gui.library_view.currentIndex()
@@ -142,6 +158,52 @@ class FixCheck(BaseCheck):
             self.gui.tags_view.recount()
             msg = _('Renamed to ascii %d of %d book authors') %(len(d.result_ids), d.total_count)
             self.gui.status_bar.showMessage(msg)
+
+
+    def fix_author_sort(self):
+
+        def adjust_book_author_sort(book_id, db):
+            val_old = db.new_api.field_for('author_sort', book_id)
+            val_new = ' & '.join(db.new_api.author_sort_strings_for_books((book_id,))[book_id])
+            if val_new != val_old:
+                db.new_api.set_field('author_sort', {book_id: val_new})
+                return True
+            return False
+
+        total_count, result_ids, cancelled_msg = self.check_all_files(adjust_book_author_sort, show_matches=False,
+                                                                  status_msg_type=_('books with incorrect author sort'))
+        msg = _('Checked %d books, updated %d author sorts%s') % \
+                    (total_count, len(result_ids), cancelled_msg)
+        self.gui.status_bar.showMessage(msg)
+        if len(result_ids) == 0:
+            self.gui.status_bar.showMessage(_('All author sorts are correct'))
+            return
+        self.gui.library_view.model().refresh_ids(list(result_ids))
+
+    def fix_title_sort(self):
+
+        def adjust_book_title_sort(book_id, db):
+            current_title_sort = db.title_sort(book_id, index_is_id=True)
+            current_languages = db.languages(book_id, index_is_id=True)
+            book_lang = None
+            if current_languages:
+                book_lang = current_languages.split(',')[0]
+            title = db.title(book_id, index_is_id=True)
+            new_sort = title_sort(title, lang=book_lang)
+            if current_title_sort != new_sort:
+                db.set_title_sort(book_id, new_sort, notify=False)
+                return True
+            return False
+
+        total_count, result_ids, cancelled_msg = self.check_all_files(adjust_book_title_sort, show_matches=False,
+                                                                  status_msg_type=_('books with incorrect title sort'))
+        msg = _('Checked %d books, updated %d title sorts%s') % \
+                    (total_count, len(result_ids), cancelled_msg)
+        self.gui.status_bar.showMessage(msg)
+        if len(result_ids) == 0:
+            self.gui.status_bar.showMessage(_('All title sorts are correct'))
+            return
+        self.gui.library_view.model().refresh_ids(list(result_ids))
 
 
     def check_and_update_file_sizes(self):
@@ -179,7 +241,8 @@ class FixCheck(BaseCheck):
                     (total_count, self.updated_format_count, len(result_ids), cancelled_msg)
         self.gui.status_bar.showMessage(msg)
         if len(result_ids) == 0:
-            return info_dialog(self.gui, 'No Matches%s'%cancelled_msg, _('All book format sizes are correct'), show=True)
+            self.gui.status_bar.showMessage(_('All book format sizes are correct'))
+            return
         self.gui.library_view.model().refresh_ids(list(result_ids))
 
 
@@ -203,7 +266,8 @@ class FixCheck(BaseCheck):
                     (total_count, len(result_ids), cancelled_msg)
         self.gui.status_bar.showMessage(msg)
         if len(result_ids) == 0:
-            return info_dialog(self.gui, _('No Matches%s')%cancelled_msg, _('All books have up to date paths'), show=True)
+            self.gui.status_bar.showMessage(_('All books have up to date paths'))
+            return
         self.gui.library_view.model().refresh_ids(list(result_ids))
 
 
@@ -230,8 +294,14 @@ class FixCheck(BaseCheck):
         self._cleanup_directory_if_needed(path, messages, errors, delete_parent=False)
 
         if len(messages) == 0 and len(errors) == 0:
-            return info_dialog(self.gui, _('No files deleted'),
-                               _('No files/folders were found to be deleted'), show=True)
+            self.gui.status_bar.showMessage(_('No files/folders were found to be deleted'))
+            return
+
+        c = cfg.plugin_prefs[cfg.STORE_OPTIONS]
+        suppress_dialog = c.get(cfg.KEY_SUPPRESS_FIX_DIALOG, False)
+        if suppress_dialog:
+            self.gui.status_bar.showMessage(_('Cleanup completed'))
+            return
 
         msg = _('Deleted %d files/folders with %d errors. See details for more info.') % \
                 (len(messages), len(errors))
@@ -358,7 +428,120 @@ class FixCheck(BaseCheck):
                 d = ApplyFixProgressDialog(self.gui, _('Fixing ASIN for %d books'), book_ids, tdir, apply_fix)
                 d.exec_()
 
+            c = cfg.plugin_prefs[cfg.STORE_OPTIONS]
+            suppress_dialog = c.get(cfg.KEY_SUPPRESS_FIX_DIALOG, False)
+            if suppress_dialog:
+                self.gui.status_bar.showMessage(_('Fix ASIN completed'))
+                return
             sd = ResultsSummaryDialog(self.gui, _('Quality Check'),
                                      _('%d books updated, see log for details')%len(d.updated_ids),
                                      self.log)
             sd.exec_()
+
+
+    def fix_normalize_fields(self):
+        db = self.gui.current_db.new_api
+
+        # retrive text fields
+        fields = set()
+        for k,v in db.fields.items():
+            if v.metadata['datatype'] != 'text' or isinstance(v, CompositeField):
+                continue
+            fields.add(k)
+        for f in ['languages', 'identifiers', 'ondevice', 'formats', 'path', 'uuid']:
+            if f in fields:
+                fields.remove(f)
+
+        update_map = defaultdict(dict)
+
+        def normalize(val):
+            if isinstance(val, str):
+                return unicodedata.normalize('NFC', val)
+            else:
+                return tuple(normalize(v) for v in val)
+
+        # retrive new values
+        def evaluate_book(book_id, db):
+            mark_book = False
+
+            for field in fields:
+                val = db.new_api.field_for(field, book_id)
+                if not val:
+                    continue
+                val_norm = normalize(val)
+                if val != val_norm:
+                    mark_book = True
+                    update_map[field][book_id] = val_norm
+
+            return mark_book
+
+        total_count, result_ids, cancelled_msg = self.check_all_files(evaluate_book,
+                                                                  marked_text='fix_normalize_fields',
+                                                                  status_msg_type=_('books for normalize text fields'))
+
+        # update the fields
+        total_field_count = 0
+        for field, val_map in update_map.items():
+            total_field_count += len(val_map)
+            db.set_field(field, val_map)
+
+        # the default author sort are stored separatly
+        sort_map = {}
+        for author_id, val in db.fields['authors'].table.asort_map.items():
+            val_norm = normalize(val)
+            if val != val_norm:
+                sort_map[author_id] = val_norm
+        if sort_map:
+            db.set_sort_for_authors(sort_map, update_books=False)
+
+        msg = _('Checked %d books, normalize fields %d in %d books, and %d author sort key%s') % \
+                    (total_count, total_field_count, len(result_ids), len(sort_map), cancelled_msg)
+        self.gui.status_bar.showMessage(msg)
+        if len(result_ids) == 0 and len(sort_map) == 0:
+            self.gui.status_bar.showMessage(_('All text fields are normalize'))
+            return
+        self.gui.library_view.model().refresh_ids(list(result_ids))
+
+    def fix_normalize_notes(self):
+        db = self.gui.current_db.new_api
+        if not hasattr(db, 'get_all_items_that_have_notes'):
+            return error_dialog(self.gui, _('Quality Check failed'),
+                            _('"Normalize the notes" requires calibre version 7.0 or higher.'),
+                            show=True, show_copy_button=False)
+
+        def normalize(val):
+            return unicodedata.normalize('NFC', val)
+
+        field_id_notes = defaultdict(dict)
+        total_count = 0
+        total_update_count = 0
+        all_notes = db.get_all_items_that_have_notes()
+
+        for field, notes in all_notes:
+            for item_id in notes:
+                note_data = db.notes_data_for(field, item_id)
+                note = note_data.get('doc')
+                if not note:
+                    continue
+                note_norm = normalize(note)
+                if note != note_norm:
+                    note_data['doc'] = note_norm
+                    field_id_notes[field][item_id] = note_data
+
+        with db.backend.conn:
+            for field, values in field_id_notes.items():
+                total_update_count += len(values)
+                for item_id, note_data in values.items():
+                    db.set_notes_for(
+                        field, item_id,
+                        note_data['doc'],
+                        searchable_text=note_data['searchable_text'],
+                        resource_hashes=note_data['resource_hashes'],
+                    )
+
+        msg = ('\nChecked %d notes, normalize %d in %d fields') % \
+                    (total_count, total_update_count, len(field_id_notes))
+        self.gui.status_bar.showMessage(msg)
+        if len(field_id_notes) == 0:
+            self.gui.status_bar.showMessage(_('All category notes are normalize'))
+            return

@@ -15,11 +15,11 @@ except NameError:
     pass # load_translations() added in calibre 1.9
 
 try:
-    from qt.core import (QWidget, QVBoxLayout, QLabel, QUrl,
+    from qt.core import (QWidget, QVBoxLayout, QLabel, QUrl, QCheckBox, QSize,
                           QGroupBox, QGridLayout, QListWidget, QListWidgetItem,
                           QAbstractItemView, Qt, QPushButton, QSpinBox)
 except:
-    from PyQt5.Qt import (QWidget, QVBoxLayout, QLabel, QUrl,
+    from PyQt5.Qt import (QWidget, QVBoxLayout, QLabel, QUrl, QCheckBox, QSize,
                           QGroupBox, QGridLayout, QListWidget, QListWidgetItem,
                           QAbstractItemView, Qt, QPushButton, QSpinBox)
 
@@ -42,6 +42,7 @@ KEY_MAX_TAGS = 'maxTags'
 KEY_MAX_TAG_EXCLUSIONS = 'maxTagExclusions'
 KEY_HIDDEN_MENUS = 'hiddenMenus'
 KEY_SEARCH_SCOPE = 'searchScope'
+KEY_SEARCH_HISTORY_LENGTH = 'searchHistoryLength'
 
 SCOPE_LIBRARY = 'Library'
 SCOPE_SELECTION = 'Selection'
@@ -50,6 +51,7 @@ DEFAULT_STORE_VALUES = {
                            KEY_MAX_TAGS: 5,
                            KEY_MAX_TAG_EXCLUSIONS: [],
                            KEY_HIDDEN_MENUS: [],
+                           KEY_SEARCH_HISTORY_LENGTH: 10
                        }
 
 # Per library we store an exclusions map
@@ -61,6 +63,7 @@ PREFS_KEY_SETTINGS = 'settings'
 KEY_EXCLUSIONS_BY_CHECK = 'exclusionsByCheck'
 KEY_AUTHOR_INITIALS_MODE = 'authorInitialsMode'
 AUTHOR_INITIALS_MODES = ['A.B.', 'A. B.', 'A B', 'AB']
+KEY_SUPPRESS_FIX_DIALOG = 'suppressFixDialog'
 
 DEFAULT_LIBRARY_VALUES = {
                           KEY_EXCLUSIONS_BY_CHECK: {  },
@@ -154,13 +157,17 @@ PLUGIN_MENUS = OrderedDict([
 
 
 PLUGIN_FIX_MENUS = OrderedDict([
-       ('fix_swap_author_names',    {'name': _('Swap author FN LN <-> LN,FN'),   'cat':'fix',  'group': 0, 'image': 'images/check_comma.png',         'tooltip':_('For the selected book(s) swap author names between FN LN and LN, FN formats')}),
-       ('fix_author_initials',      {'name': _('Reformat author initials'),      'cat':'fix',  'group': 0, 'image': 'user_profile.png',               'tooltip':_('For the selected book(s) reformat the author initials to your configured preference')}),
-       ('fix_author_ascii',         {'name': _('Rename author to ascii'),        'cat':'fix',  'group': 0, 'image': 'user_profile.png',               'tooltip':_('For the selected book(s) rename the title to remove any accents and diacritics characters')}),
-       ('check_fix_book_size',      {'name': _('Check and repair book sizes'),   'cat':'fix',  'group': 1, 'image': 'images/check_file_size.png',     'tooltip':_('Check and update file sizes for your books')}),
-       ('check_fix_book_paths',     {'name': _('Check and rename book paths'),   'cat':'fix',  'group': 1, 'image': 'images/fix_rename.png',          'tooltip':_('Ensure book paths include commas if appropriate')}),
-       ('cleanup_opf_files',        {'name': _('Cleanup .opf files/folders'),    'cat':'fix',  'group': 2, 'image': 'images/fix_cleanup_folders.png', 'tooltip':_('Delete orphaned opf/jpg files and remove empty folders')}),
-       ('fix_mobi_asin',            {'name': _('Fix ASIN for Kindle Fire'),      'cat':'fix',  'group': 3, 'image': 'images/fix_mobi_asin.png',       'tooltip':_('For MOBI/AZW/AZW3 formats, assign the current amazon identifier (uuid if not present) as an ASIN to EXTH 113 and 504 fields')}),
+       ('fix_swap_author_names',    {'name': _('Swap author FN LN <-> LN,FN'),   'cat':'fix',  'group': 0, 'image': 'images/check_comma.png',           'tooltip':_('For the selected book(s) swap author names between FN LN and LN, FN formats')}),
+       ('fix_author_initials',      {'name': _('Reformat author initials'),      'cat':'fix',  'group': 0, 'image': 'user_profile.png',                 'tooltip':_('For the selected book(s) reformat the author initials to your configured preference')}),
+       ('fix_author_ascii',         {'name': _('Rename author to ascii'),        'cat':'fix',  'group': 0, 'image': 'user_profile.png',                 'tooltip':_('For the selected book(s) rename the author to remove any accents and diacritics characters')}),
+       ('fix_author_sort',          {'name': _('Set author sort'),               'cat':'fix',  'group': 0, 'image': 'images/check_book.png',            'tooltip':_('For the selected book(s) replace the author sort with a value based on the Manage Authors data')}),
+       ('fix_title_sort',           {'name': _('Set title sort'),                'cat':'fix',  'group': 0, 'image': 'images/check_book.png',            'tooltip':_('For the selected book(s) replace the title sort with a value based on your tweak preference')}),
+       ('check_fix_book_size',      {'name': _('Check and repair book sizes'),   'cat':'fix',  'group': 1, 'image': 'images/check_file_size.png',       'tooltip':_('Check and update file sizes for your books')}),
+       ('check_fix_book_paths',     {'name': _('Check and rename book paths'),   'cat':'fix',  'group': 1, 'image': 'images/fix_rename.png',            'tooltip':_('Ensure book paths include commas if appropriate')}),
+       ('cleanup_opf_files',        {'name': _('Cleanup .opf files/folders'),    'cat':'fix',  'group': 2, 'image': 'images/fix_cleanup_folders.png',   'tooltip':_('Delete orphaned opf/jpg files and remove empty folders')}),
+       ('fix_mobi_asin',            {'name': _('Fix ASIN for Kindle Fire'),      'cat':'fix',  'group': 3, 'image': 'images/fix_mobi_asin.png',         'tooltip':_('For MOBI/AZW/AZW3 formats, assign the current amazon identifier (uuid if not present) as an ASIN to EXTH 113 and 504 fields')}),
+       ('fix_normalize_fields',     {'name': _('Normalize the fields'),          'cat':'fix',  'group': 4, 'image': 'images/fix_normalize_fields.png',  'tooltip':_('Normalize the text fields by using their canonical form defined by the Unicode Standard, aka merge and reorders diacritics. Can result to unduplicate some values.')}),
+       ('fix_normalize_notes',      {'name': _('Normalize the notes'),           'cat':'fix',  'group': 4, 'image': 'images/fix_normalize_notes.png',   'tooltip':_('Normalize the category notes by using their canonical form defined by the Unicode Standard, aka merge and reorders diacritics.')}),
        ])
 
 # This is where all preferences for this plugin will be stored
@@ -242,6 +249,7 @@ class VisibleMenuListWidget(QListWidget):
         QListWidget.__init__(self, parent)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setIconSize(QSize(16,16))
         self.populate()
 
     def populate(self):
@@ -316,6 +324,21 @@ class ConfigWidget(QWidget):
         initials_mode = c.get(KEY_AUTHOR_INITIALS_MODE, AUTHOR_INITIALS_MODES[0])
         self.initials_combo = KeyValueComboBox(self, initials_map, initials_mode)
         other_layout.addWidget(self.initials_combo, 0, 1, 1, 1)
+ 
+        self.suppress_dialog_checkbox = QCheckBox(_('Suppress Fix summary dialogs'), self)
+        self.suppress_dialog_checkbox.setToolTip(_('Uncheck this option if you do not want interactive dialogs to appear summarising the operation'))
+        if c.get(KEY_SUPPRESS_FIX_DIALOG, False):
+            self.suppress_dialog_checkbox.setCheckState(Qt.Checked)
+        other_layout.addWidget(self.suppress_dialog_checkbox, 1, 0, 1, 2)
+     
+        search_history_label = QLabel(_('Search history count:'), self)
+        search_history_label.setToolTip(_('How many previous search expressions to remember on Search sPubs dialog'))
+        other_layout.addWidget(search_history_label, 2, 0, 1, 1)
+        self.search_history_spin = QSpinBox(self)
+        self.search_history_spin.setMinimum(0)
+        self.search_history_spin.setMaximum(100)
+        self.search_history_spin.setProperty('value', c.get(KEY_SEARCH_HISTORY_LENGTH, 10))
+        other_layout.addWidget(self.search_history_spin, 2, 1, 1, 1)
         other_layout.setColumnStretch(2, 1)
 
         menus_groupbox = QGroupBox(_('Visible menus'))
@@ -349,8 +372,10 @@ class ConfigWidget(QWidget):
             exclude_tag_text = exclude_tag_text[:-1]
         new_prefs[KEY_MAX_TAG_EXCLUSIONS] = [t.strip() for t in exclude_tag_text.split(',')]
         new_prefs[KEY_AUTHOR_INITIALS_MODE] = self.initials_combo.selected_key()
+        new_prefs[KEY_SUPPRESS_FIX_DIALOG] = self.suppress_dialog_checkbox.checkState() == Qt.Checked
         new_prefs[KEY_SEARCH_SCOPE] = plugin_prefs[STORE_OPTIONS].get(KEY_SEARCH_SCOPE, SCOPE_LIBRARY)
-
+        new_prefs[KEY_SEARCH_HISTORY_LENGTH] = int(unicode(self.search_history_spin.value()))
+        
         new_prefs[KEY_HIDDEN_MENUS] = self.visible_menus_list.get_hidden_menus()
         # For each menu that was visible but now is not, we need to unregister any
         # keyboard shortcut associated with that action.

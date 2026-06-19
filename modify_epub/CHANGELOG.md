@@ -1,5 +1,32 @@
 # Modify ePub Change Log
 
+## [1.8.9] - 2026-02-09
+### Added
+- Arabic translation
+
+## [1.8.8] - 2025-11-23
+### Added
+- Arabic translations
+### Changed
+- Bumped minimum calibre version up to 3.48 as incompatibility with polyglot.builtins code, see <https://github.com/kiwidude68/calibre_plugins/issues/133>
+
+## [1.8.7] - 2025-10-04
+### Changed
+- RECOVER_PARSER removed from Calibre, see <https://github.com/kiwidude68/calibre_plugins/issues/131>
+
+## [1.8.6] - 2025-03-24
+### Changed
+- Change the Remove non-DC metadata to exclude the `dcterms:modified` meta tag property which is mandatory for ePub3.
+
+## [1.8.5] - 2024-09-29
+### Changed
+- Replaced the Smarten Punctuation implementation with a direct call to the calibre implementation. This might break for older versions of calibre if that function was not present in that version in which case I will need to bump up the minim version for this plugin.
+
+## [1.8.4] - 2024-07-08
+### Fixed
+- Remove unused images now also checks inline css and opf cover.
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
+
 ## [1.8.3] - 2024-03-17
 ### Added
 - Tamil translation
@@ -15,7 +42,7 @@
 - Inserting jacket at front of book always skips 1 or sometimes 2 pages trying to detect cover/titlepage.
 
 ## [1.8.0] - 2022-10-16
-_All kiwidude plugins updated/migrated to: https://github.com/kiwidude68/calibre_plugins_
+_All kiwidude plugins updated/migrated to: <https://github.com/kiwidude68/calibre_plugins>
 ### Added
 - Add keyboard shortcuts access and help to configuration dialog.
 - Spanish translation (Jellby)
@@ -25,7 +52,7 @@ _All kiwidude plugins updated/migrated to: https://github.com/kiwidude68/calibre
 - Refactoring of common code
 - Removed help file, point to [GitHub Wiki](https://github.com/kiwidude68/calibre_plugins/wiki/Modify-ePub)
 
-## [1.7.3m] - 2022-04-25
+## [1.7.3] - 2022-04-25
 ### Fixed
 - Remove some python 3 code inadvertently left in after debugging. (@chaley)
 

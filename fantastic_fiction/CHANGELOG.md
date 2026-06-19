@@ -1,5 +1,42 @@
 # Fantastic Fiction Change Log
 
+## [1.7.5] - 2026-04-22
+### Fixed
+- Debug output warning from Python
+
+## [1.7.4] - 2026-01-10
+### Added
+- Temp workaround to allow the user to paste in the aws-waf-token value from web browser into the configuration.
+  Users can get this by visiting fantasticfiction.com in browser, F12 -> Storage -> Cookies, copy value or
+  from F12 -> Network -> click on a document request -> Headers -> Request Headers -> Cookie, copy value.
+- Arabic, Japanese, Romanian translations
+
+## [1.7.2] - 2025-03-24
+### Added
+- Set metadata language to always be `eng` rather than calibre user default (feuille)
+- Galician translation
+
+## [1.7.1] - 2024-08-20
+### Added
+- Czech translation
+- Portuguese translation
+### Fixed
+- Search matching logic was too vague on title word matching and stopped after first book title vaguely similar.
+
+## [1.7.0] - 2024-03-30
+### Added
+- If the id is manually linked to the author index page, ensure the link returns a `.html` suffix rather than `.htm` required for individual book pages.
+- Catalan translation
+- Chinese (China) translation
+- Dutch translation
+- French translation
+- German translation
+- Italian translation
+- Natvian translation
+- Polish translation
+- Spanish (Brazil) translation
+- Swedish translation
+
 ## [1.6.5] - 2024-03-17
 ### Added
 - Finnish translation

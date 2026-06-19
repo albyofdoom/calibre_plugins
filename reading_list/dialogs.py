@@ -76,7 +76,9 @@ class EditListTableWidget(QTableWidget):
         self.setSortingEnabled(False)
         self.resizeColumnsToContents()
         self.setMinimumColumnWidth(0, 100)
+        self.setMaximumColumnWidth(0, 300)
         self.setMinimumColumnWidth(1, 100)
+        self.setMaximumColumnWidth(1, 300)
         self.setMinimumSize(300, 0)
         if len(books) > 0:
             self.selectRow(0)
@@ -84,6 +86,10 @@ class EditListTableWidget(QTableWidget):
     def setMinimumColumnWidth(self, col, minimum):
         if self.columnWidth(col) < minimum:
             self.setColumnWidth(col, minimum)
+
+    def setMaximumColumnWidth(self, col, maximum):
+        if self.columnWidth(col) > maximum:
+            self.setColumnWidth(col, maximum)
 
     def populate_table_row(self, row, book):
         title_cell = ReadOnlyTableWidgetItem(book['title'])
@@ -189,7 +195,7 @@ class EditListTableWidget(QTableWidget):
 
 
 class EditListDialog(SizePersistedDialog):
-    def __init__(self, parent, books, list_name):
+    def __init__(self, parent, books, list_name, selected_book_ids):
         SizePersistedDialog.__init__(self, parent, _('reading list plugin:edit list dialog'))
         self.setWindowTitle(_('Edit List'))
         layout = QVBoxLayout(self)
@@ -228,7 +234,7 @@ class EditListDialog(SizePersistedDialog):
         spacerItem = QSpacerItem(20, 40, qSizePolicy_Minimum, qSizePolicy_Expanding)
         button_layout.addItem(spacerItem)
 
-	# remove from list button
+	    # remove from list button
         self.remove_button = QToolButton(self)
         self.remove_button.setToolTip(_('Remove selected books from the list'))
         self.remove_button.setIcon(get_icon('list_remove.png'))
@@ -246,14 +252,12 @@ class EditListDialog(SizePersistedDialog):
         # move down 10 rows button
         self.move_10_down_button = QToolButton(self)
         self.move_10_down_button.setToolTip(_('Move selected books 10 rows down the list'))
-        #self.move_10_down_button.setIcon(QIcon(I('arrow-down.png')))
         self.move_10_down_button.setIcon(get_icon('images/arrow_down_double.png'))
         self.move_10_down_button.clicked.connect(self.books_table.move_10_rows_down)
         button_layout.addWidget(self.move_10_down_button)
         # move to bottom button
         self.move_bottom_button = QToolButton(self)
         self.move_bottom_button.setToolTip(_('Move selected books to the bottom of the list'))
-        #self.move_bottom_button.setIcon(QIcon(I('arrow-down.png')))
         self.move_bottom_button.setIcon(get_icon('images/arrow_down_double_bar.png'))
         self.move_bottom_button.clicked.connect(self.books_table.move_to_bottom)
         button_layout.addWidget(self.move_bottom_button)
@@ -265,6 +269,14 @@ class EditListDialog(SizePersistedDialog):
         # Cause our dialog size to be restored from prefs or created on first usage
         self.resize_dialog()
         self.books_table.populate_table(books)
+        # If we have a single selected book idm then select it in the table
+        if len(selected_book_ids) == 1:
+            book_id = selected_book_ids[0]
+            for row in range(self.books_table.rowCount()):
+                if self.books_table.item(row, 0).data(Qt.UserRole) == book_id:
+                    self.books_table.selectRow(row)
+                    self.books_table.scrollToItem(self.books_table.item(row, 0))
+                    break
 
     def remove_from_list(self):
         self.books_table.remove_selected_rows()

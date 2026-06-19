@@ -25,12 +25,14 @@ from calibre.ebooks.chardet import xml_to_unicode
 from calibre.ebooks.conversion.preprocess import HTMLPreProcessor
 from calibre.ebooks.metadata.epub import Encryption
 from calibre.ebooks.oeb.base import XPath
-from calibre.ebooks.oeb.parse_utils import RECOVER_PARSER, NotHTML, parse_html
+from calibre.ebooks.oeb.parse_utils import NotHTML, parse_html
 from calibre.utils.zipfile import ZipFile, BadZipfile
 
 from calibre_plugins.quality_check.check_base import BaseCheck
 from calibre_plugins.quality_check.dialogs import SearchEpubDialog
 from calibre_plugins.quality_check.helpers import get_title_authors_text
+
+RECOVER_PARSER = etree.XMLParser(recover=True, no_network=True, resolve_entities=False)
 
 META_INF = {
         'container.xml' : True,
@@ -62,7 +64,7 @@ ENCRYPTION_PATH = 'META-INF/encryption.xml'
 
 RE_HTML_BODY = re.compile(u'<body[^>]*>(.*)</body>', re.UNICODE | re.DOTALL)
 RE_STRIP_MARKUP = re.compile(u'<[^>]+>', re.UNICODE)
-RE_WHITESPACE = re.compile(u'\s+', re.UNICODE | re.DOTALL)
+RE_WHITESPACE = re.compile(r'\s+', re.UNICODE | re.DOTALL)
 
 OCF_NS = 'urn:oasis:names:tc:opendocument:xmlns:container'
 OPF_NS = 'http://www.idpf.org/2007/opf'
@@ -272,7 +274,7 @@ class EpubCheck(BaseCheck):
                                     break
                     if log_lines:
                         if show_all_matches:
-                            self.log(_('Matches in book: <b>%s</b>')%get_title_authors_text(db, book_id))
+                            self.log('%s '%len(log_lines) + _('Matches in book: <b>%s</b>')%get_title_authors_text(db, book_id))
                         else:
                             self.log(_('First match in book: <b>%s</b>')%get_title_authors_text(db, book_id))
                         for log_line in log_lines:
@@ -601,6 +603,65 @@ class EpubCheck(BaseCheck):
 
     def check_epub_unused_images(self):
         RE_IMAGE = r'<(?:[a-z]*?\:)*?ima?ge?[^>]*?"[^"]*?%s"'
+        RE_IMAGE_STYLE = r'background-image:[^\'>]*?url\(\'?[^\)]*?%s\'?\)'
+        
+        def check_for_images_in_html_resources(zf, image_regexes, image_name_regexes, resource_names):
+            for resource_name in resource_names:
+                data = self.zf_read(zf, resource_name)
+                image_keys = list(image_regexes.keys())
+                for image_key in image_keys:
+                    regexes = image_regexes[image_key]
+                    for image_regex in regexes:
+                        if image_regex.search(data):
+                            #self.log.info('\tFOUND (HTML): ', image_key, ' in: ', resource_name)
+                            image_regexes.pop(image_key)
+                            image_name_regexes.pop(image_key)
+                            break
+                if not image_regexes:
+                    break
+        
+        def check_for_images_in_css_resources(zf, image_regexes, image_name_regexes, resource_names):
+            #self.log.info('*** Scanning CSS for images')
+            for resource_name in resource_names:
+                data = self.zf_read(zf, resource_name)
+                image_keys = list(image_name_regexes.keys())
+                for image_key in image_keys:
+                    image_regex = image_name_regexes[image_key]
+                    #self.log.info('  Scanning css for image: ', image_key, ' regex: ', image_regex)
+                    if image_regex.search(data):
+                        #self.log.info('\tFOUND (CSS): ', image_key, ' in: ', resource_name)
+                        image_name_regexes.pop(image_key)
+                        image_regexes.pop(image_key)
+                if not image_name_regexes:
+                    break
+
+        def check_for_images_in_opf_cover_meta(path_to_book, zf, image_regexes, image_name_regexes):
+            #self.log.info('*** Scanning OPF for images')            
+            opf_name = self._get_opf_xml(path_to_book, zf)
+            if not opf_name:
+                return
+            opf_xml = self._get_opf_tree(zf, opf_name)
+            covers = opf_xml.xpath(r'child::opf:metadata/opf:meta[@name="cover" and @content]',
+                                   namespaces={'opf':OPF_NS})
+            cover_id = None
+            if covers:
+                cover_id = covers[0].get('content')
+            if cover_id:
+                items = opf_xml.xpath(r'child::opf:manifest/opf:item',
+                                      namespaces={'opf':OPF_NS})
+                image_keys = list(image_name_regexes.keys())
+                for item in items:
+                    if item.get('id', None) == cover_id:
+                        item_href = item.get('href', None)
+                        for image_key in image_keys:
+                            image_regex = image_name_regexes[image_key]
+                            #self.log.info('  Scanning opf meta for image: ', image_key, ' regex: ', image_regex)
+                            if image_regex.search(item_href):
+                                #self.log.info('\tFOUND (OPF): ', image_key)
+                                image_name_regexes.pop(image_key)
+                                image_regexes.pop(image_key)
+                        if not image_name_regexes:
+                            break
 
         def evaluate_book(book_id, db):
             path_to_book = db.format_abspath(book_id, 'EPUB', index_is_id=True)
@@ -615,42 +676,46 @@ class EpubCheck(BaseCheck):
                         return False
                     # Build a list of regexes for all the image files in this epub
                     image_regexes = {}
+                    image_name_regexes = {}
                     html_resource_names = []
+                    css_resource_names = []
                     for resource_name in self._manifest_worthy_names(zf):
                         extension = resource_name[resource_name.rfind('.'):].lower()
                         if extension in IMAGE_FILES:
                             # Use the base name for the image since relative path might differ from html
                             # compared to the opf manifest
                             try:
-                                image = os.path.basename(resource_name).lower()
-                                image_enc = six.moves.urllib.request.pathname2url(image).lower()
+                                image = os.path.basename(resource_name)
+                                image_enc = six.moves.urllib.request.pathname2url(image)
+                                #self.log.info('Image: ', image)
                             except:
                                 self.log.error('ERROR parsing book: ', path_to_book)
                                 self.log.error(_('\tIssue with image name: '), resource_name)
                                 self.log(traceback.format_exc())
                                 return False
-                            image_regexes[resource_name] = [re.compile(RE_IMAGE % image, re.UNICODE)]
+                            image_name_regexes[resource_name] = re.compile(image, re.UNICODE | re.IGNORECASE)
+                            image_regexes[resource_name] = [re.compile(RE_IMAGE % image, re.UNICODE | re.IGNORECASE)]
+                            image_regexes[resource_name].append(re.compile(RE_IMAGE_STYLE % image, re.UNICODE | re.IGNORECASE))
                             if image_enc != image:
-                                image_regexes[resource_name].append(re.compile(RE_IMAGE % image_enc, re.UNICODE))
+                                image_regexes[resource_name].append(re.compile(RE_IMAGE % image_enc, re.UNICODE | re.IGNORECASE))
+                                image_regexes[resource_name].append(re.compile(RE_IMAGE_STYLE % image_enc, re.UNICODE | re.IGNORECASE))
+                        elif extension in CSS_FILES:
+                            css_resource_names.append(resource_name)
                         elif extension not in NON_HTML_FILES:
                             html_resource_names.append(resource_name)
 
-                    if image_regexes and html_resource_names:
-                        for resource_name in html_resource_names:
-                            data = self.zf_read(zf, resource_name).lower()
-                            image_keys = list(image_regexes.keys())
-                            for image_key in image_keys:
-                                regexes = image_regexes[image_key]
-                                for image_regex in regexes:
-                                    if image_regex.search(data):
-                                        image_regexes.pop(image_key)
-                                        break
-                            if not image_regexes:
-                                break
+                    if image_regexes or html_resource_names:
+                        check_for_images_in_html_resources(zf, image_regexes, image_name_regexes, html_resource_names)
+                    if image_regexes or css_resource_names:
+                        check_for_images_in_css_resources(zf, image_regexes, image_name_regexes, css_resource_names)
                     if image_regexes:
+                        check_for_images_in_opf_cover_meta(path_to_book, zf, image_regexes, image_name_regexes)
+                    
+                    if image_regexes:
+                        self.log('----------------------------------------------------')
                         self.log(get_title_authors_text(db, book_id))
                         for resource_name in image_regexes.keys():
-                            self.log(_('\tUnused image file: %s')%resource_name)
+                            self.log(_('\tUNUSED image file: %s')%resource_name)
                         return True
                     return False
 
@@ -981,7 +1046,11 @@ class EpubCheck(BaseCheck):
                 return False
             try:
                 with ZipFile(path_to_book, 'r') as zf:
-                    for e in zf.namelist():
+                    for e in zf.infolist():
+                        if e.filename.endswith('/'): #file represent a folder
+                            continue
+                        if e.file_size == 0: #file is empty (cannot be read)
+                            continue
                         zf.read(e)
                     return False
 
@@ -1081,8 +1150,12 @@ class EpubCheck(BaseCheck):
                         if len(metadata):
                             for child in metadata[0]:
                                 try:
-                                    if not child.tag.startswith('{http://purl.org/dc/'):
-                                        return True
+                                    if child.tag.startswith('{http://purl.org/dc/'):
+                                        continue
+                                    # Make sure we exclude the mandatory dcterms:modified meta element for epub3
+                                    if child.attrib.get('property') == 'dcterms:modified':
+                                        continue
+                                    return True
                                 except:
                                     # Dunno how to elegantly handle in lxml parsing
                                     # text like <!-- stuff --> which blows up when
@@ -1456,7 +1529,7 @@ class EpubCheck(BaseCheck):
                 return False
 
         self.check_all_files(evaluate_book,
-                             no_match_msg=_('No searched ePub books have \<address\> smart tags'),
+                             no_match_msg=_(r'No searched ePub books have \<address\> smart tags'),
                              marked_text='epub_address_tags',
                              status_msg_type=_('ePub books for <address> smart tags'))
 
@@ -1537,7 +1610,7 @@ class EpubCheck(BaseCheck):
 
 
     def check_epub_css_justify(self):
-        RE_TEXT_ALIGN = re.compile(r'text\-align:\s*justify', re.UNICODE)
+        RE_TEXT_ALIGN = re.compile(r'text\-align\s*:\s*justify', re.UNICODE)
 
         def evaluate_book(book_id, db):
             path_to_book = db.format_abspath(book_id, 'EPUB', index_is_id=True)
@@ -1577,7 +1650,7 @@ class EpubCheck(BaseCheck):
             for match in RE_BOOK_MGNS.finditer(data):
                 styles = match.group('styles').lower().strip()
                 # delete trailing semicolons
-                styles = re.sub('\s*;$', '', styles)
+                styles = re.sub(r'\s*;$', '', styles)
                 if match.group('selector').lower() == 'body' and styles.find('margin') != -1:
                     self.log('\t\tMargins are defined in a body tag')
                     return True
@@ -1587,7 +1660,7 @@ class EpubCheck(BaseCheck):
                     if style:
                         style = [s.strip() for s in style.split(':')]
                         property_type = re.sub('-','_', style[0])
-                        value = float(re.sub('[^\d.]+', '', style[1]))
+                        value = float(re.sub(r'[^\d.]+', '', style[1]))
 
                         if property_type == 'margin': # Not a calibre set value, so we will just replace the whole value
                             self.log(_('\t\t\'margin\' property found, so does not match calibre preferences'))

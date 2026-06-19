@@ -1,0 +1,319 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Usama Salama, 2022
+# Usama Khalil, 2025
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2024-03-24 17:58+1000\n"
+"PO-Revision-Date: 2022-09-19 15:18+0000\n"
+"Last-Translator: Usama Khalil, 2025\n"
+"Language-Team: Arabic (https://app.transifex.com/calibre/teams/19337/ar/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Language: ar\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: ..\common\common_dialogs.py:84 config.py:122
+msgid "Keyboard shortcuts"
+msgstr "مختصرات لوحة المفاتيح"
+
+#: ..\common\common_dialogs.py:112
+msgid "Restart calibre now"
+msgstr "أعد تشغيل calibre الآن"
+
+#: ..\common\common_dialogs.py:128
+msgid "Preferences for:"
+msgstr "تفضيلات لـ:"
+
+#: ..\common\common_dialogs.py:160
+msgid "Clear"
+msgstr "مسح"
+
+#: ..\common\common_dialogs.py:162
+msgid "Clear all settings for this plugin"
+msgstr "مسح جميع إعدادات هذه الإضافة"
+
+#: ..\common\common_dialogs.py:189
+msgid ""
+"Are you sure you want to change your settings in this library for this "
+"plugin?"
+msgstr "هل أنت متأكد أنك تريد تغيير إعداداتك في هذه المكتبة لهذه الإضافة؟"
+
+#: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
+msgid ""
+"Any settings in other libraries or stored in a JSON file in your calibre "
+"plugins folder will not be touched."
+msgstr ""
+"لن يتم المساس بأي إعدادات في مكتبات أخرى أو مخزنة في ملف JSON في مجلد إضافات"
+" calibre الخاص بك."
+
+#: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
+msgid "You must restart calibre afterwards."
+msgstr "يجب عليك إعادة تشغيل calibre بعد ذلك."
+
+#: ..\common\common_dialogs.py:200
+msgid "Settings changed"
+msgstr "الإعدادات تغيرت"
+
+#: ..\common\common_dialogs.py:201
+msgid "Settings for this plugin in this library have been changed."
+msgstr "تم تغيير إعدادات هذه الإضافة في هذه المكتبة."
+
+#: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
+msgid "Please restart calibre now."
+msgstr "من فضلك أعد تشغيل calibre الآن."
+
+#: ..\common\common_dialogs.py:209
+msgid ""
+"Are you sure you want to clear your settings in this library for this "
+"plugin?"
+msgstr "هل أنت متأكد أنك تريد مسح إعداداتك في هذه المكتبة لهذه الإضافة؟"
+
+#: ..\common\common_dialogs.py:221
+msgid "Settings deleted"
+msgstr "تم حذف الإعدادات"
+
+#: ..\common\common_dialogs.py:222
+msgid "All settings for this plugin in this library have been cleared."
+msgstr "تم مسح جميع إعدادات هذه الإضافة في هذه المكتبة."
+
+#: ..\common\common_dialogs.py:297
+msgid "Copy to clipboard"
+msgstr "نسخ إلى الحافظة"
+
+#: ..\common\common_widgets.py:105
+msgid "Undefined"
+msgstr "غير معرف"
+
+#: ..\common\common_widgets.py:160
+msgid "Restart required"
+msgstr "إعادة التشغيل مطلوبة"
+
+#: ..\common\common_widgets.py:161
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"صورة العنوان غير موجودة - يجب عليك إعادة تشغيل Calibre قبل استخدام هذه "
+"الإضافة!"
+
+#: ..\common\common_widgets.py:234
+msgid "Create new column"
+msgstr "إنشاء عمود جديد"
+
+#: action.py:28
+msgid "Extract ISBN from the selected book format"
+msgstr "استخراج ISBN من تنسيق الكتاب المحدد"
+
+#: action.py:28 action.py:74
+msgid "Extract ISBN"
+msgstr "استخراج ISBN"
+
+#: action.py:43
+msgid "No rows selected"
+msgstr "لم يتم تحديد صفوف"
+
+#: action.py:44
+msgid "You must select one or more books to perform this action."
+msgstr "يجب عليك تحديد كتاب واحد أو أكثر لتنفيذ هذا الإجراء."
+
+#: action.py:78
+msgid "Extracting ISBN for {0} books"
+msgstr "جارٍ استخراج ISBN لـ {0} كتاب"
+
+#: action.py:91
+msgid "Failed to extract isbns"
+msgstr "فشل استخراج ISBNs"
+
+#: action.py:94
+msgid "ISBN extract completed"
+msgstr "اكتمل استخراج ISBN"
+
+#: action.py:99
+msgid "Extract ISBN found <b>{0} new isbn(s)</b>."
+msgstr "وجد استخراج ISBN <b>{0} ISBN(s) جديد(ة)</b>."
+
+#: action.py:100
+msgid "Proceed with updating your library?"
+msgstr "المتابعة بتحديث مكتبتك؟"
+
+#: action.py:106
+msgid ""
+"Could not find an ISBN for {0} book(s) and {1} book(s) matched their "
+"existing value."
+msgstr ""
+"تعذر العثور على ISBN لـ {0} كتاب (كتب) و {1} كتاب (كتب) طابقت قيمتها "
+"الموجودة."
+
+#: action.py:109
+msgid "Could not find an ISBN for {0} book(s)."
+msgstr "تعذر العثور على ISBN لـ {0} كتاب (كتب)."
+
+#: action.py:111
+msgid "Found {0} book(s) where ISBN matched the existing value."
+msgstr "تم العثور على {0} كتاب (كتب) حيث طابق ISBN القيمة الموجودة."
+
+#: action.py:113
+msgid "Click \"Show details\" to see which books."
+msgstr "انقر على \"إظهار التفاصيل\" لمعرفة أي الكتب."
+
+#: action.py:118
+msgid "Scan failed"
+msgstr "فشل المسح"
+
+#: action.py:118 action.py:127
+msgid "Scan log"
+msgstr "سجل المسح"
+
+#: action.py:127
+msgid "Scan complete"
+msgstr "اكتمل المسح"
+
+#: action.py:153
+msgid "Some books changed"
+msgstr "تغيرت بعض الكتب"
+
+#: action.py:154
+msgid ""
+"The metadata for some books in your library has changed since you started "
+"the download. If you proceed, some of those changes may be overwritten. "
+"Click \"Show details\" to see the list of changed books. Do you want to "
+"proceed?"
+msgstr ""
+"تغيرت البيانات الوصفية لبعض الكتب في مكتبتك منذ أن بدأت التنزيل. إذا تابعت، "
+"قد يتم الكتابة فوق بعض هذه التغييرات. انقر على \"إظهار التفاصيل\" لرؤية "
+"قائمة الكتب التي تغيرت. هل تريد المتابعة؟"
+
+#: action.py:165 jobs.py:226
+msgid "Unknown"
+msgstr "غير معروف"
+
+#: config.py:40
+msgid "Do not change my search"
+msgstr "لا تغير بحثي"
+
+#: config.py:41
+msgid "Show the books that have new or updated ISBNs"
+msgstr "عرض الكتب التي تحتوي على أرقام ISBN جديدة أو محدثة"
+
+#: config.py:71
+msgid "When the scan completes:"
+msgstr "عند اكتمال المسح:"
+
+#: config.py:76
+msgid "Valid prefixes for ISBN-13 (comma separated):"
+msgstr "بادئات صالحة لـ ISBN-13 (مفصولة بفاصلة):"
+
+#: config.py:81
+msgid "Selected books before running as a background job:"
+msgstr "الكتب المحددة قبل التشغيل كعملية خلفية:"
+
+#: config.py:82
+msgid "Running as a background job is slower but is the only way to avoid\n"
+msgstr "التشغيل كعملية خلفية أبطأ ولكنه الطريقة الوحيدة لتجنب\n"
+
+#: config.py:83
+msgid "memory leaks and will keep the UI more responsive."
+msgstr "تسرب الذاكرة وسيبقي واجهة المستخدم أكثر استجابة."
+
+#: config.py:92
+msgid "Batch size running as a background job:"
+msgstr "حجم الدفعة أثناء التشغيل كعملية خلفية:"
+
+#: config.py:93
+msgid ""
+"Books will be broken into batches to ensure that if you run\n"
+"extract for a large group you can cancel/close calibre without\n"
+"losing all of your results as you can cancel the pending groups."
+msgstr ""
+"سيتم تقسيم الكتب إلى دفعات لضمان أنه إذا قمت بتشغيل\n"
+"استخراج لمجموعة كبيرة يمكنك إلغاء/إغلاق calibre دون\n"
+"فقدان جميع نتائجك حيث يمكنك إلغاء المجموعات المعلقة."
+
+#: config.py:105
+msgid "Display failure dialog if ISBN not found or identical"
+msgstr "عرض مربع حوار الفشل إذا لم يتم العثور على ISBN أو كان متطابقًا"
+
+#: config.py:106
+msgid ""
+"Uncheck this option if you want do not want to be prompted\n"
+"about no ISBN being found in the book or it is the same as\n"
+"your current value."
+msgstr ""
+"ألغِ تحديد هذا الخيار إذا كنت لا تريد أن يتم مطالبتك\n"
+"بشأن عدم العثور على ISBN في الكتاب أو أنه هو نفسه\n"
+"قيمةك الحالية."
+
+#: config.py:113
+msgid "Prompt to apply ISBN changes"
+msgstr "مطالبة بتطبيق تغييرات ISBN"
+
+#: config.py:114
+msgid ""
+"Uncheck this option if you want changes applied without\n"
+"a confirmation dialog. There is a small risk with this\n"
+"option unchecked that if you are making other changes to\n"
+"this book record at the same time they will be lost."
+msgstr ""
+"ألغِ تحديد هذا الخيار إذا كنت تريد تطبيق التغييرات بدون\n"
+"مربع حوار تأكيد. هناك خطر بسيط مع هذا الخيار غير المحدد\n"
+"وهو أنه إذا كنت تقوم بإجراء تغييرات أخرى على سجل هذا الكتاب في نفس الوقت،\n"
+"فستفقد."
+
+#: config.py:123
+msgid "Edit the keyboard shortcuts associated with this plugin"
+msgstr "تحرير اختصارات لوحة المفاتيح المرتبطة بهذه الإضافة"
+
+#: config.py:127
+msgid "Help"
+msgstr "مساعدة"
+
+#: dialogs.py:25
+msgid "Queueing books for extracting ISBN"
+msgstr "وضع الكتب في قائمة الانتظار لاستخراج ISBN"
+
+#: dialogs.py:53
+msgid "Queueing"
+msgstr "وضع في قائمة الانتظار"
+
+#: dialogs.py:73
+msgid "Extract ISBN failed"
+msgstr "فشل استخراج ISBN"
+
+#: dialogs.py:74
+msgid "Scan aborted as no books with formats found."
+msgstr "تم إجهاض المسح لأنه لم يتم العثور على كتب ذات تنسيقات."
+
+#: jobs.py:41
+msgid "Extract ISBN for %d books"
+msgstr "استخراج ISBN لـ %d كتاب"
+
+#: jobs.py:44
+msgid "Extract ISBN started"
+msgstr "بدأ استخراج ISBN"
+
+#: jobs.py:96
+msgid "Scanned %d of %d"
+msgstr "تم مسح %d من %d"
+
+#: jobs.py:113
+msgid "No formats"
+msgstr "لا توجد تنسيقات"
+
+#: jobs.py:115
+msgid "ISBN not found"
+msgstr "لم يتم العثور على ISBN"
+
+#: jobs.py:121
+msgid "Same ISBN"
+msgstr "نفس ISBN"
+
+#: jobs.py:127
+msgid "Extracted"
+msgstr "تم الاستخراج"

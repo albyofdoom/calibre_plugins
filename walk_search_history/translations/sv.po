@@ -1,0 +1,180 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# efef6ec5b435a041fce803c7f8af77d2_2341d43, 2022
+# Merarom <merarom@yahoo.es>, 2022
+# Daniel, 2024
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2024-03-24 18:09+1000\n"
+"PO-Revision-Date: 2022-09-09 23:27+0000\n"
+"Last-Translator: Daniel, 2024\n"
+"Language-Team: Swedish (https://app.transifex.com/calibre/teams/19337/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ..\common\common_dialogs.py:84 config.py:88
+msgid "Keyboard shortcuts"
+msgstr "Tangentbordsgenvägar"
+
+#: ..\common\common_dialogs.py:112
+msgid "Restart calibre now"
+msgstr "Starta om calibre nu."
+
+#: ..\common\common_dialogs.py:128
+msgid "Preferences for:"
+msgstr "Inställningar för:"
+
+#: ..\common\common_dialogs.py:160
+msgid "Clear"
+msgstr "Rensa"
+
+#: ..\common\common_dialogs.py:162
+msgid "Clear all settings for this plugin"
+msgstr "Rensa alla inställningar för detta tillägg"
+
+#: ..\common\common_dialogs.py:189
+msgid ""
+"Are you sure you want to change your settings in this library for this "
+"plugin?"
+msgstr ""
+"Är du säker på att du vill ändra dina inställningar i det här biblioteket "
+"för denna insticksmodul?"
+
+#: ..\common\common_dialogs.py:190 ..\common\common_dialogs.py:210
+msgid ""
+"Any settings in other libraries or stored in a JSON file in your calibre "
+"plugins folder will not be touched."
+msgstr ""
+"Alla inställningar i andra bibliotek eller sparade i en JSON-fil i din "
+"calibre-tilläggsmapp kommer inte att röras."
+
+#: ..\common\common_dialogs.py:192 ..\common\common_dialogs.py:212
+msgid "You must restart calibre afterwards."
+msgstr "Du måste starta om calibre efteråt."
+
+#: ..\common\common_dialogs.py:200
+msgid "Settings changed"
+msgstr "Inställningar ändrade"
+
+#: ..\common\common_dialogs.py:201
+msgid "Settings for this plugin in this library have been changed."
+msgstr ""
+"Inställningarna för denna insticksmodul i det här biblioteket har ändrats."
+
+#: ..\common\common_dialogs.py:202 ..\common\common_dialogs.py:223
+msgid "Please restart calibre now."
+msgstr "Var god starta om calibre nu."
+
+#: ..\common\common_dialogs.py:209
+msgid ""
+"Are you sure you want to clear your settings in this library for this "
+"plugin?"
+msgstr ""
+"Är du säker på att du vill rensa dina inställningar i detta bibliotek för "
+"detta tillägg?"
+
+#: ..\common\common_dialogs.py:221
+msgid "Settings deleted"
+msgstr "Inställningar borttagna"
+
+#: ..\common\common_dialogs.py:222
+msgid "All settings for this plugin in this library have been cleared."
+msgstr "Alla inställningar för detta tillägg i detta bibliotek har rensats."
+
+#: ..\common\common_dialogs.py:297
+msgid "Copy to clipboard"
+msgstr "Kopiera till urklipp"
+
+#: ..\common\common_widgets.py:105
+msgid "Undefined"
+msgstr "Odefinerad"
+
+#: ..\common\common_widgets.py:160
+msgid "Restart required"
+msgstr "Kräver omstart"
+
+#: ..\common\common_widgets.py:161
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"Titelbilden hittades inte - du måste starta om caliber innan du använder "
+"denna insticksmodul!"
+
+#: ..\common\common_widgets.py:234
+msgid "Create new column"
+msgstr "Skapa ny kolumn"
+
+#: action.py:34
+msgid "History"
+msgstr "Historik"
+
+#: action.py:88
+msgid "Goto previous"
+msgstr "Gå till föregående"
+
+#: action.py:90
+msgid "Goto next"
+msgstr "Gå till nästa"
+
+#: action.py:111
+msgid "Clear search history"
+msgstr "Rensa sökhistorik"
+
+#: action.py:114
+msgid "&Customize plugin"
+msgstr "&Anpassa insticksmodul"
+
+#: action.py:116 config.py:93
+msgid "&Help"
+msgstr "&Hjälp"
+
+#: action.py:196
+msgid "Are you sure?"
+msgstr "Är du säker?"
+
+#: action.py:197
+msgid "Are you sure you want to clear the search history?"
+msgstr "Är du säker på att du vill rensa sökhistoriken?"
+
+#: config.py:58
+msgid "Default action for toolbar button click"
+msgstr "Standardåtgärd för klick på verktygsfältsknapp"
+
+#: config.py:63
+msgid "Previous search"
+msgstr "Föregående sökning"
+
+#: config.py:64
+msgid "Dropdown menu"
+msgstr ""
+
+#: config.py:74
+msgid "Display last x searches in menu (0=Unlimited)"
+msgstr "Visa de senaste x sökningarna i menyn (0=Obegränsat)"
+
+#: config.py:82
+msgid "Keep separate history per library"
+msgstr "Behåll separat historik per bibliotek"
+
+#: config.py:83
+msgid ""
+"When checked will maintain a separate history per library\n"
+"when you switch between them."
+msgstr ""
+"När markerad kommer det att upprätthållas en separat historik per bibliotek "
+"när du växlar mellan dem. "
+
+#: config.py:89
+msgid "Edit the keyboard shortcuts associated with this plugin"
+msgstr ""
+"Redigera tangentbordets kortkommandon som hör samman med detta "
+"tilläggsprogram"

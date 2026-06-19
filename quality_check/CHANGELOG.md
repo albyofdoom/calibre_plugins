@@ -1,5 +1,73 @@
 # Quality Check Change Log
 
+## [1.14.7] - 2026-02-09
+### Added
+- Updated translations
+
+## [1.14.6] - 2025-11-23
+### Changed
+- Bumped minimum calibre version up to 3.48 as incompatibility with polyglot.builtins code, see <https://github.com/kiwidude68/calibre_plugins/issues/133>
+
+## [1.14.5] - 2025-11-16
+### Changed
+- The 'Check CSS non-justified' check now allows for spaces between `text-align` and `:` for (poorly) formatted CSS.
+- The 'Search ePubs' feature now allows dialog to be user resized
+- The 'Search ePubs' history items list length can now be changed (from default of 10) in the Customize plugin dialog.
+- The "Check Author Sort' has been rewritten to be more performant (12 x faster on my test library) (#cbhaley)
+
+## [1.14.4] - 2025-10-04
+### Changed
+- RECOVER_PARSER removed from Calibre, see https://github.com/kiwidude68/calibre_plugins/issues/131
+
+## [1.14.3] - 2025-08-24
+### Added
+- Added 'Normalize the fields' and 'Normalize the notes' options for merge and reorder diatrics. (#un-pogaz)
+- Added Actions Chains support. (#un-pogaz)
+- Added 'Fix Author Sort' action. (#un-pogaz)
+
+## [1.14.2] - 2025-04-18
+### Changed
+- The 'Swap author names' fix now applies a consistent swap when multiple author names.
+
+## [1.14.1] - 2025-03-24
+### Changed
+- The non DC: metadata check now ignores the mandatory epub3 `dcterms:modified` meta element.
+
+## [1.14.0] - 2025-01-25
+### Added
+- Added a 'Fix title sort' option for users as an alternative to the bulk metadata edit dialog.
+
+## [1.13.16] - 2024-11-09
+### Added
+- Cover search dialog now allows searching for books with covers based on their aspect ratios.
+
+## [1.13.15] - 2024-08-05
+### Added
+- Display the count of matches in a book when finding all occurrences using 'Search ePubs'.
+
+## [1.13.14] - 2024-08-05
+### Added
+- Added a 'Suppress Fix summary dialogs' option to prevent a summary dialog showing the success/failure of the operation.
+### Fixed
+- Some of the icon sizes in the Configure dialog had larger icons.
+
+## [1.13.13] - 2024-08-02
+### Fixed
+- The 'Check unused image files' feature for ePUB now also checks inline style elements.
+
+## [1.13.12] - 2024-07-07
+### Fixed
+- The 'Check unused image files' feature for ePUB now includes CSS files and OPF files.
+
+## [1.13.11] - 2024-06-29
+### Fixed
+- The 'Check missing EBOK cdetype' feature for MOBI not correctly identifying EBOK.
+
+## [1.13.10] - 2024-03-23
+### Fixed
+- The 'Check corrupt zip' feature included some false-positives (#un-pogaz)
+- Fix libpng warning: icCCP: known incorrect sRGB profile using `magick mogrify *.png`
+
 ## [1.13.9] - 2024-03-17
 ### Changed
 - The 'Check corrupt zip' feature also considers individual file corruption issues (#un-pogaz)
