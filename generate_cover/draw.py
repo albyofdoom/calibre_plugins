@@ -31,23 +31,59 @@ def swap_author_names(author):
 
 class TextLine(object):
 
-    def __init__(self, text, font_name, font_size,
+    def __init__(self, text, font_info, font_size,
                  bottom_margin=30, align='center'):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
         try:
-            from qt.core import QFont, Qt
+            from qt.core import QFont, Qt, QFontDatabase
         except ImportError:
-            from PyQt5.Qt import QFont, Qt
+            from PyQt5.Qt import QFont, Qt, QFontDatabase
+
+        # font_info can be a family name string or a dict containing keys:
+        # { 'name': family, 'file': font_file_relative_or_abs, 'bold': bool, 'italic': bool }
+        font_name = None
+        font_file = None
+        bold = False
+        italic = False
+        if isinstance(font_info, dict):
+            font_name = font_info.get('name')
+            font_file = font_info.get('file')
+            bold = font_info.get('bold', False)
+            italic = font_info.get('italic', False)
+        else:
+            font_name = font_info
+
+        # If a font file is supplied, attempt to register it with Qt so the family becomes available
+        if font_file:
+            try:
+                # Resolve relative paths stored in prefs to images dir
+                if not os.path.isabs(font_file):
+                    font_file = os.path.join(cfg.get_images_dir(), font_file)
+                if os.path.exists(font_file):
+                    font_id = QFontDatabase.addApplicationFont(font_file)
+                    if font_id != -1:
+                        families = QFontDatabase.applicationFontFamilies(font_id)
+                        if families:
+                            # Prefer the first reported family
+                            font_name = families[0]
+            except Exception:
+                # Best-effort only; fall back to family name if available
+                pass
+
         self.font = QFont(font_name) if font_name else QFont()
         self.font.setPixelSize(font_size)
+        if bold:
+            self.font.setBold(True)
+        if italic:
+            self.font.setItalic(True)
         self._align = {'center': Qt.AlignHCenter,
                        'left': Qt.AlignLeft, 'right': Qt.AlignRight}[align]
 
 
-def get_textline(text, font_info, margin):
-    return TextLine(text, font_info['name'], font_info['size'], margin,
-                    align=font_info['align'])
+def get_textline(text, font_info, margin, fill_color='#000000'):
+    return TextLine(text, font_info, font_info['size'], margin,
+                    align=font_info.get('align', 'center'))
 
 
 class DrawingWand(object):
@@ -57,10 +93,11 @@ class DrawingWand(object):
             setattr(self, k, v)
 
 
-def create_colored_text_wand(line, fill_color, stroke_color):
+def create_colored_text_wand(line, fill_color, stroke_color, apply_border=False, border_width=1):
     return DrawingWand(**{
-        'fill_color': fill_color, 'stroke_color':
-        stroke_color, 'font': line.font, 'align': line._align})
+        'fill_color': fill_color, 'stroke_color': stroke_color,
+        'font': line.font, 'align': line._align,
+        'apply_border': apply_border, 'border_width': border_width})
 
 
 def add_border(img, border_width, border_color, bgcolor):
@@ -123,9 +160,26 @@ def draw_sized_text(img, dw, line, top, left_margin, right_margin,
                     line.text = '*** TEXT TOO LARGE TO AUTO-FIT ***'
                     break
         p.setFont(line.font)
-        br = p.drawText(QRect(
-            int(left_margin), int(top), int(img.size[0] - left_margin - right_margin), int(img.size[1] - top)), 
-            flags | Qt.TextWordWrap, line.text)
+        text_rect = QRect(
+            int(left_margin), int(top),
+            int(img.size[0] - left_margin - right_margin), int(img.size[1] - top))
+        if getattr(dw, 'apply_border', False) and getattr(dw, 'stroke_color', None):
+            border_pen = p.pen()
+            border_pen.setColor(QColor(dw.stroke_color))
+            p.setPen(border_pen)
+            bw = max(1, int(dw.border_width))
+            radius_sq = bw * bw + 1
+            for dx in range(-bw, bw + 1):
+                for dy in range(-bw, bw + 1):
+                    if dx == 0 and dy == 0:
+                        continue
+                    if dx * dx + dy * dy <= radius_sq:
+                        p.drawText(text_rect.adjusted(dx, dy, dx, dy),
+                                   flags | Qt.TextWordWrap, line.text)
+            fill_pen = p.pen()
+            fill_pen.setColor(QColor(dw.fill_color))
+            p.setPen(fill_pen)
+        br = p.drawText(text_rect, flags | Qt.TextWordWrap, line.text)
         return br.bottom()
     finally:
         p.end()
@@ -173,11 +227,13 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     right_mgn = min([right_mgn, (width / 2) - 10])
     right_text_margin = right_mgn if right_mgn > 0 else 10
 
+    apply_border = options.get(cfg.KEY_TEXT_BORDER, False)
+    border_width = options.get(cfg.KEY_TEXT_BORDER_WIDTH, 1)
     colors = options[cfg.KEY_COLORS]
     bgcolor, border_color, fill_color, stroke_color = (
         colors['background'], colors['border'], colors['fill'],
         colors['stroke'])
-    if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False):
+    if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False) and not apply_border:
         stroke_color = None
     auto_reduce_font = options.get(cfg.KEY_FONTS_AUTOREDUCED, False)
     borders = options[cfg.KEY_BORDERS]
@@ -198,13 +254,12 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         logo.open(image_path)
         outer_margin = 0 if cover_border_width == 0 else cover_border_width
         logo.size = (width - outer_margin * 2, height - outer_margin * 2)
-        left = top = outer_margin
-        canvas.compose(logo, int(left), int(top))
+        canvas.compose(logo, outer_margin, outer_margin)
 
     top = top_mgn
     if len(top_lines) > 0:
         for line in top_lines:
-            twand = create_colored_text_wand(line, fill_color, stroke_color)
+            twand = create_colored_text_wand(line, fill_color, stroke_color, apply_border, border_width)
             top = draw_sized_text(
                 canvas, twand, line, top, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -217,7 +272,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         footer_height = 0
         for line in bottom_lines:
             line.twand = create_colored_text_wand(
-                line, fill_color, stroke_color)
+                line, fill_color, stroke_color, apply_border, border_width)
             footer_height = draw_sized_text(
                 fake_canvas, line.twand, line, footer_height, left_text_margin,
                 right_text_margin, auto_reduce_font)

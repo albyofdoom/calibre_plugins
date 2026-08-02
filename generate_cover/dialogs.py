@@ -952,8 +952,13 @@ DIC_name_font = [
 DIC_name_color = [
     ('Background', _('Background')),
     ('Border', _('Border')),
-    ('Fill', _('Fill')),
-    ('Stroke', _('Stroke')),
+]
+
+DIC_name_text_fill_color = [
+    ('Title', _('Title')),
+    ('Author', _('Author')),
+    ('Series', _('Series')),
+    ('Custom', _('Custom')),
 ]
 
 class FontsTab(QWidget):
@@ -978,6 +983,7 @@ class FontsTab(QWidget):
             font_label.setToolTip(_('Select a font and specify a size in pixels.\n'
                                     'If font set to \'Default\', uses the tweak value from\n'
                                     '\'generate_cover_title_font\' if present.'))
+            setattr(self, '_fontLabel' + name, font_label)
             fonts_grid_layout.addWidget(font_label, row, 0, 1, 1)
             font_combo = FontComboBox(self)
             setattr(self, '_font' + name, font_combo)
@@ -991,6 +997,18 @@ class FontsTab(QWidget):
             # Create the toolbutton menu for alignment
             align_btn = self._create_align_button(name)
             fonts_grid_layout.addWidget(align_btn, row, 4, 1, 1)
+            # Create bold checkbox
+            bold_checkbox = QCheckBox(_('Bold'), self)
+            bold_checkbox.setToolTip(_('Make this text bold'))
+            bold_checkbox.stateChanged[int].connect(self.changed)
+            setattr(self, '_fontBold' + name, bold_checkbox)
+            fonts_grid_layout.addWidget(bold_checkbox, row, 5, 1, 1)
+            # Create italic checkbox
+            italic_checkbox = QCheckBox(_('Italic'), self)
+            italic_checkbox.setToolTip(_('Make this text italic'))
+            italic_checkbox.stateChanged[int].connect(self.changed)
+            setattr(self, '_fontItalic' + name, italic_checkbox)
+            fonts_grid_layout.addWidget(italic_checkbox, row, 6, 1, 1)
             row += 1
 
         self.fonts_linked_checkbox = QCheckBox(_('Use the same font family for all text'))
@@ -1007,6 +1025,28 @@ class FontsTab(QWidget):
         self.fonts_reduced_checkbox.stateChanged[int].connect(self.changed)
         fonts_layout.addWidget(self.fonts_reduced_checkbox)
 
+        # Import font button
+        import_font_btn = QPushButton(_('Import font...'), self)
+        import_font_btn.setToolTip(_('Import a local font file and register it for use in covers'))
+        import_font_btn.clicked.connect(self.import_font)
+        fonts_layout.addWidget(import_font_btn)
+
+        text_border_layout = QHBoxLayout()
+        self.fonts_border_checkbox = QCheckBox(_('Draw border around letters'))
+        self.fonts_border_checkbox.setToolTip(_('When checked, a border is drawn around each letter using the stroke color.'))
+        self.fonts_border_checkbox.stateChanged[int].connect(self.border_checkbox_changed)
+        text_border_layout.addWidget(self.fonts_border_checkbox)
+        text_border_layout.addSpacing(10)
+        self._border_width_label = QLabel(_('Width:'))
+        text_border_layout.addWidget(self._border_width_label)
+        self.fonts_border_width_spin = QSpinBox(self)
+        self.fonts_border_width_spin.setRange(1, 20)
+        self.fonts_border_width_spin.setSingleStep(1)
+        self.fonts_border_width_spin.valueChanged[int].connect(self.changed)
+        text_border_layout.addWidget(self.fonts_border_width_spin)
+        text_border_layout.addStretch()
+        fonts_layout.addLayout(text_border_layout)
+
         main_layout.addSpacing(10)
         colors_groupbox = QGroupBox(_('Colors:'))
         main_layout.addWidget(colors_groupbox)
@@ -1019,30 +1059,32 @@ class FontsTab(QWidget):
         for name, display_name in DIC_name_color:
             setattr(self, '_tclabel' + name, QLabel(display_name+':', self))
             colors_grid_layout.addWidget(getattr(self, '_tclabel' + name), row, 0, 1, 1)
+
             color_ledit = ReadOnlyLineEdit('', self)
             setattr(self, '_color' + name, color_ledit)
             colors_grid_layout.addWidget(color_ledit, row, 1, 1, 1)
+
             clear_color_button = QToolButton(self)
             clear_color_button.setIcon(QIcon(I('trash.png')))
             clear_color_button.setToolTip(_('Reset %s color') % display_name.lower())
             clear_color_button.clicked.connect(partial(self.reset_color, color_ledit, name))
             setattr(self, '_clearColor' + name, clear_color_button)
             colors_grid_layout.addWidget(clear_color_button, row, 2, 1, 1)
+
             select_button = QPushButton('...', self)
             select_button.setToolTip(_('Select a %s color') % display_name.lower())
             select_button.clicked.connect(partial(self.pick_color, color_ledit))
             setattr(self, '_selectColor' + name, select_button)
             fm = select_button.fontMetrics()
-            select_button.setFixedWidth(fm.width('...') + 10)
+            select_button.setFixedWidth(fm.width('...') + 16)
             colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
+
             row += 1
 
         self.apply_stroke_checkbox = QCheckBox(_('Apply'))
         self.apply_stroke_checkbox.setToolTip(_('When checked, stroke color is drawn around text'))
         self.apply_stroke_checkbox.stateChanged[int].connect(self.changed)
         self.apply_stroke_checkbox.setVisible(False)
-        for x in '_color _clearColor _selectColor _tclabel'.split():
-            getattr(self, x + 'Stroke').setVisible(False)
         colors_grid_layout.addWidget(self.apply_stroke_checkbox, row-1, 4, 1, 1)
         main_layout.insertStretch(-1)
 
@@ -1079,6 +1121,15 @@ class FontsTab(QWidget):
         color_ledit.setText(default_color)
         self.changed.emit()
 
+    def reset_fill_color(self, color_ledit, text_type):
+        saved_setting = self.parent_dialog.get_saved_setting()
+        colors = saved_setting[cfg.KEY_COLORS]
+        # Use the name like 'title_fill', 'author_fill', etc.
+        key = text_type.lower() + '_fill'
+        default_color = colors.get(key, '#000000')
+        color_ledit.setText(default_color)
+        self.changed.emit()
+
     def pick_color(self, color_ledit):
         color = QColor(unicode(color_ledit.text()))
         picked_color = QColorDialog.getColor(color, self)
@@ -1086,20 +1137,54 @@ class FontsTab(QWidget):
             color_ledit.setText(picked_color.name())
             self.changed.emit()
 
+    def same_fill_color_changed(self):
+        is_checked = self.use_same_fill_color_checkbox.isChecked()
+        getattr(self, '_fillLabelAuthor').setStyleSheet("")
+        getattr(self, '_fillLabelSeries').setStyleSheet("")
+        getattr(self, '_fillLabelCustom').setStyleSheet("")
+        getattr(self, '_selectFillColorAuthor').setEnabled(True)
+        getattr(self, '_selectFillColorSeries').setEnabled(True)
+        getattr(self, '_selectFillColorCustom').setEnabled(True)
+        if is_checked:
+            self.set_other_fill_colors_linked_to_title_fill_color()
+            getattr(self, '_fillLabelAuthor').setStyleSheet("color: gray")
+            getattr(self, '_fillLabelSeries').setStyleSheet("color: gray")
+            getattr(self, '_fillLabelCustom').setStyleSheet("color: gray")
+            getattr(self, '_selectFillColorAuthor').setEnabled(False)
+            getattr(self, '_selectFillColorSeries').setEnabled(False)
+            getattr(self, '_selectFillColorCustom').setEnabled(False)
+        self.changed.emit()
+
+    def set_other_fill_colors_linked_to_title_fill_color(self):
+        title_fill_color = getattr(self, '_fillColorTitle').text()
+        getattr(self, '_fillColorAuthor').setText(title_fill_color)
+        getattr(self, '_fillColorSeries').setText(title_fill_color)
+        getattr(self, '_fillColorCustom').setText(title_fill_color)
+
     def title_font_changed(self):
         if self.fonts_linked_checkbox.isChecked():
             self.set_other_fonts_linked_to_title_font_combo()
         self.changed.emit()
 
-    def fonts_linked_changed(self, state):
+    def fonts_linked_changed(self):
+        is_checked = self.fonts_linked_checkbox.isChecked()
+        getattr(self, '_fontLabelAuthor').setStyleSheet("")
+        getattr(self, '_fontLabelSeries').setStyleSheet("")
+        getattr(self, '_fontLabelCustom').setStyleSheet("")
         getattr(self, '_fontAuthor').setEnabled(True)
         getattr(self, '_fontSeries').setEnabled(True)
         getattr(self, '_fontCustom').setEnabled(True)
-        if state == Qt.Checked:
+        if is_checked:
             self.set_other_fonts_linked_to_title_font_combo()
+            getattr(self, '_fontLabelAuthor').setStyleSheet("color: gray")
+            getattr(self, '_fontLabelSeries').setStyleSheet("color: gray")
+            getattr(self, '_fontLabelCustom').setStyleSheet("color: gray")
             getattr(self, '_fontAuthor').setEnabled(False)
             getattr(self, '_fontSeries').setEnabled(False)
             getattr(self, '_fontCustom').setEnabled(False)
+        self.changed.emit()
+
+    def border_checkbox_changed(self, state):
         self.changed.emit()
 
     def set_other_fonts_linked_to_title_font_combo(self):
@@ -1113,6 +1198,60 @@ class FontsTab(QWidget):
         getattr(self, '_fontAuthor').blockSignals(False)
         getattr(self, '_fontSeries').blockSignals(False)
         getattr(self, '_fontCustom').blockSignals(False)
+
+    def import_font(self):
+        # Let user pick a font file and copy it into the plugin images/fonts folder,
+        # register with Qt and set the Title font to the imported family.
+        archives = choose_files(self.parent_dialog, 'Generate Cover plugin:pick font file',
+                                _('Select font file to import'),
+                             filters=[(_('Font Files'), ['ttf', 'otf', 'ttc'])], all_files=False, select_only_single_file=True)
+        if not archives:
+            return
+        src = archives[0]
+        try:
+            fonts_dir = os.path.join(self.parent_dialog.images_dir, 'fonts')
+            if not os.path.exists(fonts_dir):
+                os.makedirs(fonts_dir)
+            base = os.path.basename(src)
+            dest = os.path.join(fonts_dir, base)
+            # Avoid overwrite
+            if os.path.exists(dest):
+                name, ext = os.path.splitext(base)
+                i = 1
+                while True:
+                    new_name = '%s-%d%s' % (name, i, ext)
+                    dest = os.path.join(fonts_dir, new_name)
+                    if not os.path.exists(dest):
+                        base = new_name
+                        break
+                    i += 1
+            shutil.copy2(src, dest)
+            # Register with Qt
+            try:
+                from qt.core import QFontDatabase
+            except ImportError:
+                from PyQt5.Qt import QFontDatabase
+            font_id = QFontDatabase.addApplicationFont(dest)
+            family = None
+            if font_id != -1:
+                fams = QFontDatabase.applicationFontFamilies(font_id)
+                if fams:
+                    family = fams[0]
+            # If we found a family, select it in Title font combo and store file ref
+            if family:
+                getattr(self, '_fontTitle').select_value(family)
+                # Store relative path to the font in settings
+                rel_path = os.path.join('fonts', base)
+                current = self.parent_dialog.current
+                current[cfg.KEY_FONTS]['title']['file'] = rel_path
+                current[cfg.KEY_FONTS]['title']['name'] = family
+                cfg.plugin_prefs[cfg.STORE_CURRENT] = current
+                self.changed.emit()
+                return
+            # If registration failed, notify user
+            error_dialog(self, _('Import Failed'), _('Failed to register font file'), show=True)
+        except Exception:
+            error_dialog(self, _('Import Failed'), _('Failed to import font file'), det_msg=traceback.format_exc(), show=True)
 
 
 class DimensionsTab(QWidget):
@@ -1636,6 +1775,9 @@ class CoverOptionsDialog(SizePersistedDialog):
             getattr(self.fonts_tab, '_fontSize'+name).setValue(fonts[name.lower()]['size'])
             button = getattr(self.fonts_tab, '_fontAlign'+name)
             self.fonts_tab.change_alignment(button, name, fonts[name.lower()]['align'])
+            # Load bold and italic settings
+            getattr(self.fonts_tab, '_fontBold'+name).setChecked(fonts[name.lower()].get('bold', False))
+            getattr(self.fonts_tab, '_fontItalic'+name).setChecked(fonts[name.lower()].get('italic', False))
 
         is_fonts_linked = self.current.get(cfg.KEY_FONTS_LINKED, False)
         self.fonts_tab.fonts_linked_checkbox.setChecked(is_fonts_linked)
@@ -1643,12 +1785,21 @@ class CoverOptionsDialog(SizePersistedDialog):
         getattr(self.fonts_tab, '_fontSeries').setEnabled(not is_fonts_linked)
         self.fonts_tab.fonts_reduced_checkbox.setChecked(self.current.get(cfg.KEY_FONTS_AUTOREDUCED, False))
 
+        is_text_border = self.current.get(cfg.KEY_TEXT_BORDER, False)
+        self.fonts_tab.fonts_border_checkbox.setChecked(is_text_border)
+        self.fonts_tab.fonts_border_width_spin.setValue(self.current.get(cfg.KEY_TEXT_BORDER_WIDTH, 1))
+
         colors = self.current[cfg.KEY_COLORS]
         for name, display_name in DIC_name_color:
             getattr(self.fonts_tab, '_color'+name).setText(colors[name.lower()])
 
-        is_stroke_applied = self.current.get(cfg.KEY_COLOR_APPLY_STROKE, False)
-        self.fonts_tab.apply_stroke_checkbox.setChecked(is_stroke_applied)
+        # Load the individual fill colors for each text type
+        is_same_fill = self.current.get(cfg.KEY_FILL_COLORS_LINKED, True)
+        self.fonts_tab.use_same_fill_color_checkbox.setChecked(is_same_fill)
+        for name, _ in DIC_name_text_fill_color:
+            fill_key = name.lower() + '_fill'
+            fill_color = colors.get(fill_key, colors.get('fill', '#000000'))
+            getattr(self.fonts_tab, '_fillColor' + name).setText(fill_color)
 
         self.block_updates = False
 
@@ -1715,18 +1866,29 @@ class CoverOptionsDialog(SizePersistedDialog):
 
         border_color = unicode(getattr(self.fonts_tab, '_colorBorder').text()).strip()
         background_color = unicode(getattr(self.fonts_tab, '_colorBackground').text()).strip()
-        is_stroke_applied = self.fonts_tab.apply_stroke_checkbox.isChecked()
-        self.current[cfg.KEY_COLOR_APPLY_STROKE] = is_stroke_applied
-        fill_color = unicode(getattr(self.fonts_tab, '_colorFill').text()).strip()
-        stroke_color = unicode(getattr(self.fonts_tab, '_colorStroke').text()).strip()
-        self.current[cfg.KEY_COLORS] = {'border':     border_color,
-                                        'background': background_color,
-                                        'fill':       fill_color,
-                                        'stroke':     stroke_color }
+        
+        # Collect individual fill colors
+        title_fill = unicode(getattr(self.fonts_tab, '_fillColorTitle').text()).strip()
+        author_fill = unicode(getattr(self.fonts_tab, '_fillColorAuthor').text()).strip()
+        series_fill = unicode(getattr(self.fonts_tab, '_fillColorSeries').text()).strip()
+        custom_fill = unicode(getattr(self.fonts_tab, '_fillColorCustom').text()).strip()
+        
+        self.current[cfg.KEY_COLORS] = {'border':       border_color,
+                                        'background':   background_color,
+                                        'title_fill':   title_fill,
+                                        'author_fill':  author_fill,
+                                        'series_fill':  series_fill,
+                                        'custom_fill':  custom_fill }
+        
+        # Save the use_same_fill_color setting
+        is_same_fill_color = self.fonts_tab.use_same_fill_color_checkbox.isChecked()
+        self.current[cfg.KEY_FILL_COLORS_LINKED] = is_same_fill_color
 
         is_fonts_linked = self.fonts_tab.fonts_linked_checkbox.isChecked()
         self.current[cfg.KEY_FONTS_LINKED] = is_fonts_linked
         self.current[cfg.KEY_FONTS_AUTOREDUCED] = self.fonts_tab.fonts_reduced_checkbox.isChecked()
+        self.current[cfg.KEY_TEXT_BORDER] = self.fonts_tab.fonts_border_checkbox.isChecked()
+        self.current[cfg.KEY_TEXT_BORDER_WIDTH] = self.fonts_tab.fonts_border_width_spin.value()
         title_font  = getattr(self.fonts_tab, '_fontTitle').get_value()
         author_font = getattr(self.fonts_tab, '_fontAuthor').get_value()
         series_font = getattr(self.fonts_tab, '_fontSeries').get_value()
@@ -1739,11 +1901,19 @@ class CoverOptionsDialog(SizePersistedDialog):
         author_align = unicode(getattr(self.fonts_tab, '_fontAlignValueAuthor')).strip()
         series_align = unicode(getattr(self.fonts_tab, '_fontAlignValueSeries')).strip()
         custom_align = unicode(getattr(self.fonts_tab, '_fontAlignValueCustom')).strip()
+        title_bold  = getattr(self.fonts_tab, '_fontBoldTitle').isChecked()
+        author_bold = getattr(self.fonts_tab, '_fontBoldAuthor').isChecked()
+        series_bold = getattr(self.fonts_tab, '_fontBoldSeries').isChecked()
+        custom_bold = getattr(self.fonts_tab, '_fontBoldCustom').isChecked()
+        title_italic  = getattr(self.fonts_tab, '_fontItalicTitle').isChecked()
+        author_italic = getattr(self.fonts_tab, '_fontItalicAuthor').isChecked()
+        series_italic = getattr(self.fonts_tab, '_fontItalicSeries').isChecked()
+        custom_italic = getattr(self.fonts_tab, '_fontItalicCustom').isChecked()
         self.current[cfg.KEY_FONTS] = {
-                    'title':  { 'name': title_font,  'size': title_size,  'align': title_align },
-                    'author': { 'name': author_font, 'size': author_size, 'align': author_align },
-                    'series': { 'name': series_font, 'size': series_size, 'align': series_align },
-                    'custom': { 'name': custom_font, 'size': custom_size, 'align': custom_align } }
+                    'title':  { 'name': title_font,  'size': title_size,  'align': title_align,  'bold': title_bold,  'italic': title_italic },
+                    'author': { 'name': author_font, 'size': author_size, 'align': author_align, 'bold': author_bold, 'italic': author_italic },
+                    'series': { 'name': series_font, 'size': series_size, 'align': series_align, 'bold': series_bold, 'italic': series_italic },
+                    'custom': { 'name': custom_font, 'size': custom_size, 'align': custom_align, 'bold': custom_bold, 'italic': custom_italic } }
         cfg.plugin_prefs[cfg.STORE_CURRENT] = self.current
 
     def options_changed(self):

@@ -1,5 +1,21 @@
 # Goodreads Sync Change Log
 
+## [1.17.4] - 2026-05-12
+### Fixed
+- Yet another attempt at getting sync actions to work for both static and column values.
+
+## [1.17.3] - 2026-05-11
+### Fixed
+- Sync actions for numeric columns needing to handle both retrieval from Goodreads and fixed static values.
+
+## [1.17.2] - 2026-05-07
+### Fixed
+- Sync actions for numeric columns having a key error
+
+## [1.17.1] - 2026-04-15
+### Added
+- When editing sync actions it will now support numeric columns e.g. set reading progress column to 100
+
 ## [1.17.0] - 2026-04-11
 ### Added
 - Added checkboxes to `Sync From Goodreads Shelf` dialog to allow for selective syncing. [@albyofdoom]
