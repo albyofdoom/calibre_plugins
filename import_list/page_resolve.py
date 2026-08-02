@@ -175,7 +175,7 @@ class SearchMatchesTableWidget(QTableWidget):
                     self._set_minimum_column_width(i, 100)
         else:
             for c,w in enumerate(column_widths):
-                self.setColumnWidth(c, w)
+                self.setColumnWidth(c, 150)
 
     def populate_table(self, books):
         self.books = books

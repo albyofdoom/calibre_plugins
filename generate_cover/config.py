@@ -32,7 +32,6 @@ HELP_URL = 'https://github.com/kiwidude68/calibre_plugins/wiki/Generate-Cover'
 
 STORE_SCHEMA_VERSION = 'SchemaVersion'
 DEFAULT_SCHEMA_VERSION = 2.22
-DEFAULT_SCHEMA_VERSION = 2.22
 
 PREFS_NAMESPACE = 'GenerateCoverPlugin'
 PREFS_KEY_SETTINGS = 'settings'

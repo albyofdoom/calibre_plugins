@@ -961,6 +961,13 @@ DIC_name_text_fill_color = [
     ('Custom', _('Custom')),
 ]
 
+DIC_name_text_fill_color = [
+    ('Title', _('Title')),
+    ('Author', _('Author')),
+    ('Series', _('Series')),
+    ('Custom', _('Custom')),
+]
+
 class FontsTab(QWidget):
 
     changed = pyqtSignal()
@@ -1080,12 +1087,43 @@ class FontsTab(QWidget):
             colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
 
             row += 1
+        
+        colors_layout.addSpacing(10)
+        # Add individual fill color controls for each text type
+        for name, display_name in DIC_name_text_fill_color:
+            label = QLabel(display_name + ' Fill:', self)
+            setattr(self, '_fillLabel' + name, label)
+            colors_grid_layout.addWidget(label, row, 0, 1, 1)
+            
+            color_ledit = ReadOnlyLineEdit('', self)
+            setattr(self, '_fillColor' + name, color_ledit)
+            colors_grid_layout.addWidget(color_ledit, row, 1, 1, 1)
+            
+            clear_button = QToolButton(self)
+            clear_button.setIcon(QIcon(I('trash.png')))
+            clear_button.setToolTip(_('Reset %s fill color') % display_name.lower())
+            clear_button.clicked.connect(partial(self.reset_fill_color, color_ledit, name))
+            setattr(self, '_clearFillColor' + name, clear_button)
+            colors_grid_layout.addWidget(clear_button, row, 2, 1, 1)
+            
+            select_button = QPushButton('...', self)
+            select_button.setToolTip(_('Select %s fill color') % display_name.lower())
+            select_button.clicked.connect(partial(self.pick_color, color_ledit))
+            setattr(self, '_selectFillColor' + name, select_button)
+            fm = select_button.fontMetrics()
+            select_button.setFixedWidth(fm.width('...') + 16)
+            colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
+            
+            row += 1
+        colors_grid_layout.setColumnStretch(4, 1)
 
-        self.apply_stroke_checkbox = QCheckBox(_('Apply'))
-        self.apply_stroke_checkbox.setToolTip(_('When checked, stroke color is drawn around text'))
-        self.apply_stroke_checkbox.stateChanged[int].connect(self.changed)
-        self.apply_stroke_checkbox.setVisible(False)
-        colors_grid_layout.addWidget(self.apply_stroke_checkbox, row-1, 4, 1, 1)
+        # Add checkbox for using same fill color for all text
+        self.use_same_fill_color_checkbox = QCheckBox(_('Use the same fill color for all text'))
+        self.use_same_fill_color_checkbox.setToolTip(_('When checked, the fill color is used for all text.\n'
+                                                        'When unchecked, you can set different fill colors for each text type.'))
+        self.use_same_fill_color_checkbox.stateChanged[int].connect(self.same_fill_color_changed)
+        colors_layout.addWidget(self.use_same_fill_color_checkbox)
+        
         main_layout.insertStretch(-1)
 
     def _create_align_button(self, display_name):
@@ -1393,7 +1431,7 @@ class DimensionsTab(QWidget):
         for i, field in enumerate(visible_fields):
             name = field['name']
             is_last = (i == len(visible_fields) - 1)
-            label = QLabel(_(name) + ':', self.text_padding_groupbox)
+            label = QLabel(name + ':', self.text_padding_groupbox)
             self.text_padding_layout.addWidget(label, i, 0)
             spin = QSpinBox(self.text_padding_groupbox)
             spin.setRange(0, 5000)
@@ -1856,6 +1894,8 @@ class CoverOptionsDialog(SizePersistedDialog):
         for field_name, spin in self.dimensions_tab._text_padding_spins.items():
             if spin.isEnabled():
                 text_padding[field_name] = int(spin.value())
+            else:
+                text_padding[field_name] = 0
         self.current[cfg.KEY_TEXT_PADDING] = text_padding
 
         cover_border_width = int(unicode(self.dimensions_tab.cover_border_width_spin.value()).strip())

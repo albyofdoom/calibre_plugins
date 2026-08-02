@@ -18,6 +18,7 @@ except ImportError:
 from six import text_type as unicode
 
 from lxml import etree
+from lxml import etree
 from lxml.html import fromstring
 
 from calibre import as_unicode
@@ -37,6 +38,7 @@ class Goodreads(Source):
     description = 'Downloads metadata and covers from Goodreads'
     author = 'Grant Drake'
     version = (1, 9, 1)
+    version = (1, 9, 1)
     minimum_calibre_version = (2, 0, 0)
 
     capabilities = frozenset(['identify', 'cover'])
@@ -50,6 +52,7 @@ class Goodreads(Source):
     ID_NAME = 'goodreads'
     BASE_URL = 'https://www.goodreads.com'
     MAX_EDITIONS = 5
+    API_KEY = 'UxvtOM3ogQWjfgiCnMleA'
     API_KEY = 'UxvtOM3ogQWjfgiCnMleA'
 
     @property
@@ -99,7 +102,19 @@ class Goodreads(Source):
         scope = ''
         if title or authors:
             title_tokens = list(self.get_title_tokens(title, strip_joiners=False, strip_subtitle=True))
+
+    def get_details_url(self, goodreads_id):
+        # The extensionless book page is protected by AWS WAF. Goodreads still
+        # serves the same Next.js page, including __NEXT_DATA__, at this URL.
+        return '%s/book/show/%s.xml' % (self.BASE_URL, goodreads_id)
+        
+    def create_query(self, title=None, authors=None):
+        tokens = []
+        scope = ''
+        if title or authors:
+            title_tokens = list(self.get_title_tokens(title, strip_joiners=False, strip_subtitle=True))
             tokens += title_tokens
+            author_tokens = self.get_author_tokens(authors, only_first_author=True)
             author_tokens = self.get_author_tokens(authors, only_first_author=True)
             tokens += author_tokens
             tokens = [quote(t.encode('utf-8') if isinstance(t, unicode) else t) for t in tokens]
@@ -108,7 +123,14 @@ class Goodreads(Source):
             elif title and not authors:
                 scope = 'search=title&'
         else:
+            if authors and not title:
+                scope = 'search=author&'
+            elif title and not authors:
+                scope = 'search=title&'
+        else:
             return None
+        query = '+'.join(tokens)
+        return '%s/search/search.xml?%spage=1&q=%s&key=%s' % (Goodreads.BASE_URL, scope, query, self.API_KEY)
         query = '+'.join(tokens)
         return '%s/search/search.xml?%spage=1&q=%s&key=%s' % (Goodreads.BASE_URL, scope, query, self.API_KEY)
 
@@ -137,7 +159,7 @@ class Goodreads(Source):
 
     def get_goodreads_id_using_api(self, log, abort, timeout=30, identifier=None):
         
-        log.debug('get_goodreads_id_using_api - identifiers=%s' % identifier)
+        log.debug('get_goodreads_id_using_api - identifier=%s' % identifier)
         
         if not identifier:
             return None
@@ -152,11 +174,13 @@ class Goodreads(Source):
             return
        
         try:
-            log.info('Querying using autocomplete API: %s' % query)
+            log.info('get_goodreads_id_using_api: querying (timeout=%ds): %s' % (timeout, query))
+            t0 = time.time()
             raw = br.open_novisit(query, timeout=timeout).read()
-            log.debug('JSON Result: %s'%raw)
+            log.info('get_goodreads_id_using_api: response received in %.1fs' % (time.time() - t0))
+            log.debug('get_goodreads_id_using_api: JSON result: %s' % raw)
         except Exception as e:
-            err = 'Failed to make identify query: %r' % query
+            err = 'get_goodreads_id_using_api: failed to query: %r' % query
             log.exception(err)
             raise
 
@@ -164,7 +188,7 @@ class Goodreads(Source):
             json_result = json.loads(raw)
             if len(json_result) >= 1:
                 goodreads_id = json_result[0].get('bookId', None)
-        log.info('Result using autocomplete API: %s' % goodreads_id)
+        log.info('get_goodreads_id_using_api: result=%s' % goodreads_id)
         return goodreads_id
         
         
@@ -207,29 +231,39 @@ class Goodreads(Source):
         Note this method will retry without identifiers automatically if no
         match is found with identifiers.
         '''
+        from calibre.utils.config import config_dir
+        _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
+        log = _TeeLog(log, _log_path, append=True)
+        log.info('--- identify start: title=%s, authors=%s' % (title, authors))
+        log.info('identify: identifiers=%s, timeout=%ds' % (identifiers, timeout))
         matches = []
-        goodreads_id = None
-        log.debug('identify - start. title=%s, authors=%s, identifiers=%s' % (title, authors, identifiers))
-        # Unlike the other metadata sources, if we have a goodreads id then we
-        # do not need to fire a "search" at Goodreads.com. Instead we will be
-        # able to go straight to the URL for that book. We can use some identifiers 
-        # to get the Goodreads ID via an API if we don't already have it.
-        try:
-            if identifiers:
-                goodreads_id = self.get_goodreads_id_from_identifiers(log, abort, timeout=timeout, identifiers=identifiers)
-        except Exception as e:
-            err = 'Failed to trying to get Goodreads id using auto_complete API'
-            log.exception(err)
-            return as_unicode(e)
+        # Give explicit priority to any goodreads identifier already on the book.
+        # This check must happen before any API calls so that network errors in
+        # the ISBN/ASIN autocomplete path cannot interfere with it.
+        goodreads_id = identifiers.get(self.ID_NAME, None) if identifiers else None
+        if goodreads_id:
+            log.info('identify: using existing goodreads identifier: %s' % goodreads_id)
+        else:
+            # No goodreads id present directly - try to find one via other identifier
+            # lookups (ISBN, ASIN).  If the API call fails, fall through to the
+            # title/author search below rather than aborting.
+            try:
+                if identifiers:
+                    goodreads_id = self.get_goodreads_id_from_identifiers(log, abort, timeout=timeout, identifiers=identifiers)
+            except Exception as e:
+                log.exception('Failed to get Goodreads id using auto_complete API; will fall back to title/author search')
 
         br = self.browser
 
         if goodreads_id:
             matches.append(self.get_details_url(goodreads_id))
+            matches.append(self.get_details_url(goodreads_id))
         else:
             # Can't find a valid id, so search using the title and authors.
             log.info('No identifiers, searching for title/author')
+            log.info('No identifiers, searching for title/author')
             title = normalize(title)
+            query = self.create_query(title=title, authors=authors)
             query = self.create_query(title=title, authors=authors)
             if query is None:
                 log.error('Insufficient metadata to construct query')
@@ -246,9 +280,11 @@ class Goodreads(Source):
                 raw = response.read().strip()
                 raw = raw.decode('utf-8', errors='replace')
                 #open('E:\\goodreads_search.xml', 'wb').write(raw)
+                #open('E:\\goodreads_search.xml', 'wb').write(raw)
                 if not raw:
                     log.error('Failed to get raw result for query: %r' % query)
                     return
+                root = self.get_xml_tree(raw)
                 root = self.get_xml_tree(raw)
             except:
                 msg = 'Failed to parse goodreads page for query: %r' % query
@@ -262,26 +298,87 @@ class Goodreads(Source):
             return
 
         from calibre_plugins.goodreads.worker import Worker
-        workers = [Worker(url, result_queue, br, log, i, self) for i, url in
+        workers = [Worker(url, result_queue, br, log, i, self, timeout) for i, url in
                 enumerate(matches)]
+        log.info('identify: spawning %d worker(s) for urls: %s' % (len(workers), matches))
 
         for w in workers:
             w.start()
             # Don't send all requests at the same time
             time.sleep(0.1)
 
+        log.info('identify: waiting for workers to complete (timeout per worker request=%ds)' % timeout)
+        wait_start = time.time()
         while not abort.is_set():
             a_worker_is_alive = False
             for w in workers:
                 w.join(0.2)
                 if abort.is_set():
+                    log.warning('identify: abort signalled while waiting for workers')
                     break
                 if w.is_alive():
                     a_worker_is_alive = True
             if not a_worker_is_alive:
                 break
+        log.info('identify: all workers finished (%.1fs total wait)' % (time.time() - wait_start))
+        log.info('--- identify end: title=%s' % title)
 
         return None
+
+    def get_xml_tree(self, content):
+        content = clean_ascii_chars(content)
+        try:
+            root = et.fromstring(content)
+        except:
+            traceback.format_exc()
+            root = et.fromstring(content, parser=RECOVER_PARSER)
+        if root is None:
+            import tempfile
+            cpath = os.path.join(tempfile.gettempdir(), 'xml_fail.xml')
+            f = open(cpath, 'w')
+            f.write(content)
+            f.close()
+            raise ValueError('The shelf contains a corrupting response from Goodreads. ' +
+                             'This can occur for certain books or may be a temporary issue with the website. ' +
+                             'See the Help file for this plugin for more details or try again later.<br><br>' +
+                             'The failed xml can be found at:<br>' + cpath)
+        return root
+
+    def _convert_goodreads_title_with_series(self, text):
+        # This function attempts to convert a myriad of Goodreads title
+        # combinations to strip out the series information as it is not
+        # available separately in the API
+        if text.find('(') == -1:
+            return (text, '')
+        text_split = text.rpartition('(')
+        title = text_split[0]
+        series_info = text_split[2]
+        series_info = series_info.rpartition(')')
+        series_info = series_info[0]
+        hash_pos = series_info.find('#')
+        if hash_pos <= 0:
+            # Cannot find the series # in expression or at start like (#1-7)
+            # so consider whole thing just as title
+            title = text
+            series_info = ''
+        else:
+            # Check to make sure we have got all of the series information
+            while series_info.count(')') != series_info.count('('):
+                title_split = title.rpartition('(')
+                title = title_split[0].strip()
+                series_info = title_split[2] + '(' + series_info
+        if series_info:
+            series_partition = series_info.rpartition('#')
+            series_name = series_partition[0].strip().replace(',', '')
+            series_index = series_partition[2].strip()
+            if series_index.find('-'):
+                # The series is specified as 1-3, 1-7 etc.
+                # In future we may offer config options to decide what to do,
+                # such as "Use start number", "Use value xxx" like 0 etc.
+                # For now will just take the start number and use that
+                series_index = series_index.partition('-')[0].strip()
+            series_info = '%s [%s]' % (series_name, series_index)
+        return (title.strip(), series_info)
 
     def get_xml_tree(self, content):
         content = clean_ascii_chars(content)
@@ -341,7 +438,10 @@ class Goodreads(Source):
     def _parse_search_results(self, log, orig_title, orig_authors, root, matches, timeout):
         work_nodes = root.findall('search/results/work')
         if not work_nodes:
+        work_nodes = root.findall('search/results/work')
+        if not work_nodes:
             return
+        
         
         title_tokens = list(self.get_title_tokens(orig_title))
         author_tokens = list(self.get_author_tokens(orig_authors))
@@ -375,12 +475,30 @@ class Goodreads(Source):
                 result_url = self.get_details_url(goodreads_id)
                 log.debug("_parse_search_results: Title: %s, Author: %s, URL: %s" % (title, author, result_url))
                 matches.append(result_url)
+        
+        for work_node in work_nodes:
+            (title, series) = self._convert_goodreads_title_with_series(work_node.findtext('best_book/title').strip())
+            author = work_node.findtext('best_book/author/name')
+            if author == 'NOT A BOOK':
+                # Goodreads use this author to categorise ISBNs in their databases that
+                # are not actually books
+                continue
+            authors = [a.strip() for a in author.split(',')]
+            if ismatch(title, authors):
+                goodreads_id = work_node.findtext('best_book/id')
+                result_url = self.get_details_url(goodreads_id)
+                log.debug("_parse_search_results: Title: %s, Author: %s, URL: %s" % (title, author, result_url))
+                matches.append(result_url)
 
     def download_cover(self, log, result_queue, abort,
             title=None, authors=None, identifiers={}, timeout=30):
+        from calibre.utils.config import config_dir
+        _log_path = os.path.join(config_dir, 'goodreads_download_log.txt')
+        log = _TeeLog(log, _log_path, append=True)
+        log.info('--- download_cover start: title=%s, identifiers=%s, timeout=%ds' % (title, identifiers, timeout))
         cached_url = self.get_cached_cover_url(identifiers)
         if cached_url is None:
-            log.info('No cached cover found, running identify')
+            log.info('download_cover: no cached cover URL, running identify')
             rq = Queue()
             self.identify(log, rq, abort, title=title, authors=authors,
                     identifiers=identifiers)
@@ -399,18 +517,21 @@ class Goodreads(Source):
                 if cached_url is not None:
                     break
         if cached_url is None:
-            log.info('No cover found')
+            log.info('download_cover: no cover URL found, giving up')
             return
 
         if abort.is_set():
             return
         br = self.browser
-        log('Downloading cover from:', cached_url)
+        log.info('download_cover: fetching cover (timeout=%ds): %s' % (timeout, cached_url))
+        t0 = time.time()
         try:
             cdata = br.open_novisit(cached_url, timeout=timeout).read()
+            log.info('download_cover: cover fetched in %.1fs (%d bytes)' % (time.time() - t0, len(cdata)))
             result_queue.put((self, cdata))
         except:
-            log.exception('Failed to download cover from:', cached_url)
+            log.exception('download_cover: failed to fetch cover from: %s' % cached_url)
+        log.info('--- download_cover end: title=%s' % title)
 
     def test_fields(self, mi):
         '''

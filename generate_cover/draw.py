@@ -35,6 +35,7 @@ class TextLine(object):
                  bottom_margin=30, align='center'):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
+        self.fill_color = fill_color
         try:
             from qt.core import QFont, Qt, QFontDatabase
         except ImportError:
@@ -362,19 +363,29 @@ def generate_cover_for_book(mi, options=None, db=None):
     def get_field_margin(field_name):
         return text_padding.get(field_name, default_margin)
 
+    text_padding = options.get(cfg.KEY_TEXT_PADDING, {})
+    default_margin = options[cfg.KEY_MARGINS].get('text', 30)
+
+    def get_field_margin(field_name):
+        return text_padding.get(field_name, default_margin)
+
     content_lines = {}
     content_lines['Title'] = [
         get_textline(title_line.strip(), fonts['title'], get_field_margin('Title'))
+        get_textline(title_line.strip(), fonts['title'], get_field_margin('Title'))
         for title_line in split_and_replace_newlines(title)]
     content_lines['Author'] = [
+        get_textline(author_line.strip(), fonts['author'], get_field_margin('Author'))
         get_textline(author_line.strip(), fonts['author'], get_field_margin('Author'))
         for author_line in split_and_replace_newlines(author_string)]
     if series_string:
         content_lines['Series'] = [
             get_textline(series_line.strip(), fonts['series'], get_field_margin('Series'))
+            get_textline(series_line.strip(), fonts['series'], get_field_margin('Series'))
             for series_line in split_and_replace_newlines(series_string)]
     if custom_text:
         content_lines['Custom Text'] = [
+            get_textline(ct.strip(), fonts['custom'], get_field_margin('Custom Text'))
             get_textline(ct.strip(), fonts['custom'], get_field_margin('Custom Text'))
             for ct in split_and_replace_newlines(custom_text)]
     top_lines = []
