@@ -1025,6 +1025,12 @@ class FontsTab(QWidget):
         self.fonts_reduced_checkbox.stateChanged[int].connect(self.changed)
         fonts_layout.addWidget(self.fonts_reduced_checkbox)
 
+        # Import font button
+        import_font_btn = QPushButton(_('Import font...'), self)
+        import_font_btn.setToolTip(_('Import a local font file and register it for use in covers'))
+        import_font_btn.clicked.connect(self.import_font)
+        fonts_layout.addWidget(import_font_btn)
+
         text_border_layout = QHBoxLayout()
         self.fonts_border_checkbox = QCheckBox(_('Draw border around letters'))
         self.fonts_border_checkbox.setToolTip(_('When checked, a border is drawn around each letter using the stroke color.'))
@@ -1192,6 +1198,60 @@ class FontsTab(QWidget):
         getattr(self, '_fontAuthor').blockSignals(False)
         getattr(self, '_fontSeries').blockSignals(False)
         getattr(self, '_fontCustom').blockSignals(False)
+
+    def import_font(self):
+        # Let user pick a font file and copy it into the plugin images/fonts folder,
+        # register with Qt and set the Title font to the imported family.
+        archives = choose_files(self.parent_dialog, 'Generate Cover plugin:pick font file',
+                                _('Select font file to import'),
+                             filters=[(_('Font Files'), ['ttf', 'otf', 'ttc'])], all_files=False, select_only_single_file=True)
+        if not archives:
+            return
+        src = archives[0]
+        try:
+            fonts_dir = os.path.join(self.parent_dialog.images_dir, 'fonts')
+            if not os.path.exists(fonts_dir):
+                os.makedirs(fonts_dir)
+            base = os.path.basename(src)
+            dest = os.path.join(fonts_dir, base)
+            # Avoid overwrite
+            if os.path.exists(dest):
+                name, ext = os.path.splitext(base)
+                i = 1
+                while True:
+                    new_name = '%s-%d%s' % (name, i, ext)
+                    dest = os.path.join(fonts_dir, new_name)
+                    if not os.path.exists(dest):
+                        base = new_name
+                        break
+                    i += 1
+            shutil.copy2(src, dest)
+            # Register with Qt
+            try:
+                from qt.core import QFontDatabase
+            except ImportError:
+                from PyQt5.Qt import QFontDatabase
+            font_id = QFontDatabase.addApplicationFont(dest)
+            family = None
+            if font_id != -1:
+                fams = QFontDatabase.applicationFontFamilies(font_id)
+                if fams:
+                    family = fams[0]
+            # If we found a family, select it in Title font combo and store file ref
+            if family:
+                getattr(self, '_fontTitle').select_value(family)
+                # Store relative path to the font in settings
+                rel_path = os.path.join('fonts', base)
+                current = self.parent_dialog.current
+                current[cfg.KEY_FONTS]['title']['file'] = rel_path
+                current[cfg.KEY_FONTS]['title']['name'] = family
+                cfg.plugin_prefs[cfg.STORE_CURRENT] = current
+                self.changed.emit()
+                return
+            # If registration failed, notify user
+            error_dialog(self, _('Import Failed'), _('Failed to register font file'), show=True)
+        except Exception:
+            error_dialog(self, _('Import Failed'), _('Failed to import font file'), det_msg=traceback.format_exc(), show=True)
 
 
 class DimensionsTab(QWidget):

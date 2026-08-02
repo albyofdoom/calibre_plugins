@@ -91,10 +91,10 @@ DEFAULT_CURRENT = {
     KEY_COLORS: { 'border': '#000000', 'background': '#ffffff',
                      'fill': '#000000', 'stroke': '#000000' },
     KEY_COLOR_APPLY_STROKE: False,
-    KEY_FONTS: { 'title':  { 'name': None, 'size': 46, 'align': 'center', 'bold': False, 'italic': False },
-                 'author': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False },
-                 'series': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False },
-                 'custom': { 'name': None, 'size': 24, 'align': 'center', 'bold': False, 'italic': False } },
+    KEY_FONTS: { 'title':  { 'name': None, 'size': 46, 'align': 'center', 'bold': False, 'italic': False, 'file': None },
+                 'author': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False, 'file': None },
+                 'series': { 'name': None, 'size': 36, 'align': 'center', 'bold': False, 'italic': False, 'file': None },
+                 'custom': { 'name': None, 'size': 24, 'align': 'center', 'bold': False, 'italic': False, 'file': None } },
     KEY_FONTS_LINKED: True,
     KEY_FONTS_AUTOREDUCED: False,
     KEY_TEXT_BORDER: False,
@@ -314,6 +314,11 @@ def migrate_config_setting(schema_version, setting_name, setting, is_current=Fal
                         fonts[font_key]['bold'] = False
                     if 'italic' not in fonts[font_key]:
                         fonts[font_key]['italic'] = False
+    # Ensure font file key exists for all font entries
+    if KEY_FONTS in setting:
+        for value_map in six.itervalues(setting[KEY_FONTS]):
+            if 'file' not in value_map:
+                value_map['file'] = None
     return setting
 
 

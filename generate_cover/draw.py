@@ -31,15 +31,46 @@ def swap_author_names(author):
 
 class TextLine(object):
 
-    def __init__(self, text, font_name, font_size,
-                 bottom_margin=30, align='center', bold=False, italic=False):
+    def __init__(self, text, font_info, font_size,
+                 bottom_margin=30, align='center'):
         self.text = force_unicode(text)
         self.bottom_margin = bottom_margin
-        self.fill_color = fill_color
         try:
-            from qt.core import QFont, Qt
+            from qt.core import QFont, Qt, QFontDatabase
         except ImportError:
-            from PyQt5.Qt import QFont, Qt
+            from PyQt5.Qt import QFont, Qt, QFontDatabase
+
+        # font_info can be a family name string or a dict containing keys:
+        # { 'name': family, 'file': font_file_relative_or_abs, 'bold': bool, 'italic': bool }
+        font_name = None
+        font_file = None
+        bold = False
+        italic = False
+        if isinstance(font_info, dict):
+            font_name = font_info.get('name')
+            font_file = font_info.get('file')
+            bold = font_info.get('bold', False)
+            italic = font_info.get('italic', False)
+        else:
+            font_name = font_info
+
+        # If a font file is supplied, attempt to register it with Qt so the family becomes available
+        if font_file:
+            try:
+                # Resolve relative paths stored in prefs to images dir
+                if not os.path.isabs(font_file):
+                    font_file = os.path.join(cfg.get_images_dir(), font_file)
+                if os.path.exists(font_file):
+                    font_id = QFontDatabase.addApplicationFont(font_file)
+                    if font_id != -1:
+                        families = QFontDatabase.applicationFontFamilies(font_id)
+                        if families:
+                            # Prefer the first reported family
+                            font_name = families[0]
+            except Exception:
+                # Best-effort only; fall back to family name if available
+                pass
+
         self.font = QFont(font_name) if font_name else QFont()
         self.font.setPixelSize(font_size)
         if bold:
@@ -51,9 +82,8 @@ class TextLine(object):
 
 
 def get_textline(text, font_info, margin, fill_color='#000000'):
-    return TextLine(text, font_info['name'], font_info['size'], margin,
-                    align=font_info['align'], bold=font_info.get('bold', False),
-                    italic=font_info.get('italic', False))
+    return TextLine(text, font_info, font_info['size'], margin,
+                    align=font_info.get('align', 'center'))
 
 
 class DrawingWand(object):
