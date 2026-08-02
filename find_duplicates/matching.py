@@ -78,6 +78,42 @@ def authors_to_list(db, book_id):
         return [a.strip().replace('|',',') for a in authors.split(',')]
     return []
 
+def get_field_values_for_book(db, book_id, field_name):
+    '''
+    Return a list of string values for the given field on the given book.
+    Works with any built-in or custom (#label) field.
+    Returns an empty list if the field has no value.
+    '''
+    if not field_name:
+        return []
+    db_ref = db.new_api if hasattr(db, 'new_api') else db
+    try:
+        val = db_ref.field_for(field_name, book_id)
+    except Exception:
+        return []
+    if val is None:
+        return []
+    if isinstance(val, (list, tuple, frozenset)):
+        if field_name == 'authors':
+            return [v.replace('|', ',') for v in val if v]
+        return [str(v) for v in val if v is not None and str(v) != '']
+    result = str(val)
+    return [result] if result else []
+
+def get_generic_field_algorithm_fn(match_type):
+    '''
+    Return a single-hash function (str -> str) for a generic (non-author)
+    field using the given match type.  Reuses the title matching algorithms.
+    '''
+    if match_type == 'similar':
+        return similar_title_match
+    if match_type == 'soundex':
+        return soundex_title_match
+    if match_type == 'fuzzy':
+        return fuzzy_title_match
+    # Default / 'identical'
+    return lambda text: str(text).lower() if text is not None else ''
+
 def fuzzy_it(text, patterns=None):
     fuzzy_title_patterns = [(re.compile(pat, re.IGNORECASE), repl) for pat, repl in
                 [

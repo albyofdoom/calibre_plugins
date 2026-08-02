@@ -15,7 +15,8 @@ from calibre import prints
 from calibre.constants import DEBUG
 
 from calibre_plugins.find_duplicates.matching import (authors_to_list, similar_title_match,
-                                get_author_algorithm_fn, get_title_algorithm_fn)
+                                get_author_algorithm_fn, get_title_algorithm_fn,
+                                get_field_values_for_book, get_generic_field_algorithm_fn)
 
 try:
     load_translations()
@@ -406,32 +407,151 @@ class AuthorOnlyAlgorithm(AlgorithmBase):
         return sorted(list(book_ids))
 
 
+class CustomFieldAlgorithm(AlgorithmBase):
+    '''
+    Generic algorithm that finds duplicate books by comparing any one or two
+    fields (including custom columns).  Supports identical / similar / soundex /
+    fuzzy matching via the title-style algorithms for all field types, and the
+    author-specific algorithms (with name-ordering permutations) when the field
+    is 'authors'.
+    '''
+    def __init__(self, gui, db, exemptions_map,
+                 field1, field1_eval, field1_is_paired,
+                 field2, field2_eval, field2_is_paired):
+        AlgorithmBase.__init__(self, gui, db, exemptions_map=exemptions_map)
+        # field1 / field2 are field-name strings; None or '' means "not used".
+        self._field1 = field1
+        self._field2 = field2
+        # eval functions: field1_eval(text) -> str  (or (str, str) when is_paired)
+        self._field1_eval = field1_eval
+        self._field2_eval = field2_eval
+        # is_paired is True for author-style functions that return (hash, rev_hash)
+        self._field1_is_paired = field1_is_paired
+        self._field2_is_paired = field2_is_paired
+
+    def _get_hashes(self, values, eval_fn, is_paired):
+        '''Return a deduplicated list of hash strings for a list of field values.'''
+        hashes = []
+        for val in values:
+            result = eval_fn(val)
+            if is_paired:
+                h, rh = result
+                if h and h not in hashes:
+                    hashes.append(h)
+                if rh and rh != h and rh not in hashes:
+                    hashes.append(rh)
+            else:
+                h = result
+                if h and h not in hashes:
+                    hashes.append(h)
+        return hashes
+
+    def find_candidate(self, book_id, candidates_map, include_languages=False):
+        use_f1 = bool(self._field1) and self._field1_eval is not None
+        use_f2 = bool(self._field2) and self._field2_eval is not None
+
+        if use_f1:
+            f1_values = get_field_values_for_book(self.db, book_id, self._field1)
+            if not f1_values:
+                return
+            f1_hashes = self._get_hashes(f1_values, self._field1_eval, self._field1_is_paired)
+            if not f1_hashes:
+                return
+        else:
+            f1_hashes = ['']
+
+        if use_f2:
+            f2_values = get_field_values_for_book(self.db, book_id, self._field2)
+            if not f2_values:
+                return
+            f2_hashes = self._get_hashes(f2_values, self._field2_eval, self._field2_is_paired)
+            if not f2_hashes:
+                return
+            for h1 in f1_hashes:
+                for h2 in f2_hashes:
+                    # Use \x00 separator to avoid false hash collisions
+                    candidates_map[h1 + '\x00' + h2].add(book_id)
+        else:
+            for h1 in f1_hashes:
+                candidates_map[h1].add(book_id)
+
+
 # --------------------------------------------------------------
 #           Find Duplicates Book Algorithm Factory
 # --------------------------------------------------------------
 
 
-def create_algorithm(gui, db, search_type, identifier_type, title_match, author_match, bex_map, aex_map):
+def create_algorithm(gui, db, search_type, identifier_type, title_match, author_match, bex_map, aex_map,
+                     field1='title', field2='authors'):
     '''
     Our factory responsible for returning the appropriate algorithm
     based on the permutation of title/author matching desired.
-    Returns a tuple of the algorithm and a summary description
+    Returns a tuple of the algorithm and a summary description.
+
+    field1 / field2 select which library fields to compare (any built-in or custom
+    column name, e.g. \'title\', \'authors\', \'publisher\', \'#mycolumn\').
+    An empty string means "do not use this field".
+    title_match / author_match hold the match-type string (\' identical\', \'similar\',
+    \'soundex\', or \'fuzzy\') for field1 and field2 respectively.
+    When both field1=\'title\' and field2=\'authors\' the optimised
+    TitleAuthorAlgorithm / AuthorOnlyAlgorithm paths are used (preserving full
+    backwards-compatibility including the legacy \'ignore\' match type).
     '''
     if search_type == 'identifier':
-        display_identifier = identifier_type if len(identifier_type) <+ 50 else identifier_type[0:47]+'...'
+        display_identifier = identifier_type if len(identifier_type) <= 50 else identifier_type[0:47]+'...'
         return IdentifierAlgorithm(gui, db, bex_map, identifier_type), \
                     _("matching '{0}' identifier").format(display_identifier)
     elif search_type == 'binary':
         return BinaryCompareAlgorithm(gui, db, bex_map), \
                     _('binary compare')
     else:
-        author_fn = get_author_algorithm_fn(author_match)
+        # titleauthor / custom
+        use_f1 = bool(field1)
+        use_f2 = bool(field2)
+
+        # Legacy: 'ignore' in title_match means "don't use field1"
         if title_match == 'ignore':
-            return AuthorOnlyAlgorithm(gui, db, aex_map, author_fn), \
-                   _('ignore title, {0} author').format(author_match)
-        else:
+            use_f1 = False
+
+        # ----------------------------------------------------------------
+        # Standard title + authors path (full feature set, backward compat)
+        # ----------------------------------------------------------------
+        if (not use_f1 or field1 == 'title') and (not use_f2 or field2 == 'authors'):
+            if not use_f1:
+                # Author-only search
+                author_fn = get_author_algorithm_fn(author_match)
+                return AuthorOnlyAlgorithm(gui, db, aex_map, author_fn), \
+                       _('ignore title, {0} author').format(author_match)
+            # Field1 is title
             title_fn = get_title_algorithm_fn(title_match)
+            if not use_f2 or author_match == 'ignore':
+                return TitleAuthorAlgorithm(gui, db, bex_map, title_fn, None), \
+                       _('{0} title, any author').format(title_match)
+            author_fn = get_author_algorithm_fn(author_match)
             return TitleAuthorAlgorithm(gui, db, bex_map, title_fn, author_fn), \
                    _('{0} title, {1} author').format(title_match, author_match)
+
+        # ----------------------------------------------------------------
+        # Generic custom-field combination
+        # ----------------------------------------------------------------
+        def _make_eval(field, match_type):
+            '''Return (eval_fn, is_paired) for a given field + match-type.'''
+            if field == 'authors':
+                return get_author_algorithm_fn(match_type), True
+            return get_generic_field_algorithm_fn(match_type), False
+
+        f1_eval, f1_paired = _make_eval(field1, title_match) if use_f1 else (None, False)
+        f2_eval, f2_paired = _make_eval(field2, author_match) if use_f2 else (None, False)
+
+        if use_f1 and use_f2:
+            desc = _('{0} {1}, {2} {3}').format(title_match, field1, author_match, field2)
+        elif use_f1:
+            desc = _('{0} {1}').format(title_match, field1)
+        else:
+            desc = _('{0} {1}').format(author_match, field2)
+
+        return CustomFieldAlgorithm(gui, db, bex_map,
+                                    field1 if use_f1 else None, f1_eval, f1_paired,
+                                    field2 if use_f2 else None, f2_eval, f2_paired), desc
 
 

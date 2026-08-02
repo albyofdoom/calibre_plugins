@@ -189,7 +189,9 @@ class DuplicateFinder(FinderBase):
 
         algorithm, self._algorithm_text = create_algorithm(self.gui, self.db,
                         search_type, identifier_type, title_match, author_match,
-                        self._book_exemptions_map, self._author_exemptions_map)
+                        self._book_exemptions_map, self._author_exemptions_map,
+                        field1=cfg.plugin_prefs.get(cfg.KEY_FIELD1, 'title'),
+                        field2=cfg.plugin_prefs.get(cfg.KEY_FIELD2, 'authors'))
         self._duplicate_search_mode = algorithm.duplicate_search_mode()
 
 

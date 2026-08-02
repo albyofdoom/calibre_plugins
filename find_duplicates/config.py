@@ -45,6 +45,8 @@ KEY_TAGS_SOUNDEX = 'tagsSoundexLength'
 KEY_INCLUDE_LANGUAGES = 'includeLanguages'
 KEY_DISPLAY_LIBRARY_RESULTS = 'displayLibraryResults'
 KEY_AUTO_DELETE_BINARY_DUPS = 'autoDeleteBinaryDups'
+KEY_FIELD1 = 'field1'
+KEY_FIELD2 = 'field2'
 
 KEY_SHOW_VARIATION_BOOKS = 'showVariationBooks'
 
