@@ -952,6 +952,8 @@ DIC_name_font = [
 DIC_name_color = [
     ('Background', _('Background')),
     ('Border', _('Border')),
+    ('Fill', _('Fill')),
+    ('Stroke', _('Stroke')),
 ]
 
 DIC_name_text_fill_color = [
@@ -1793,6 +1795,9 @@ class CoverOptionsDialog(SizePersistedDialog):
         for name, display_name in DIC_name_color:
             getattr(self.fonts_tab, '_color'+name).setText(colors[name.lower()])
 
+        is_stroke_applied = self.current.get(cfg.KEY_COLOR_APPLY_STROKE, False)
+        self.fonts_tab.apply_stroke_checkbox.setChecked(is_stroke_applied)
+
         # Load the individual fill colors for each text type
         is_same_fill = self.current.get(cfg.KEY_FILL_COLORS_LINKED, True)
         self.fonts_tab.use_same_fill_color_checkbox.setChecked(is_same_fill)
@@ -1867,6 +1872,11 @@ class CoverOptionsDialog(SizePersistedDialog):
         border_color = unicode(getattr(self.fonts_tab, '_colorBorder').text()).strip()
         background_color = unicode(getattr(self.fonts_tab, '_colorBackground').text()).strip()
         
+        is_stroke_applied = self.fonts_tab.apply_stroke_checkbox.isChecked()
+        self.current[cfg.KEY_COLOR_APPLY_STROKE] = is_stroke_applied
+        fill_color = unicode(getattr(self.fonts_tab, '_colorFill').text()).strip()
+        stroke_color = unicode(getattr(self.fonts_tab, '_colorStroke').text()).strip()
+		
         # Collect individual fill colors
         title_fill = unicode(getattr(self.fonts_tab, '_fillColorTitle').text()).strip()
         author_fill = unicode(getattr(self.fonts_tab, '_fillColorAuthor').text()).strip()
@@ -1878,7 +1888,8 @@ class CoverOptionsDialog(SizePersistedDialog):
                                         'title_fill':   title_fill,
                                         'author_fill':  author_fill,
                                         'series_fill':  series_fill,
-                                        'custom_fill':  custom_fill }
+                                        'custom_fill':  custom_fill,
+                                        'stroke':     stroke_color }
         
         # Save the use_same_fill_color setting
         is_same_fill_color = self.fonts_tab.use_same_fill_color_checkbox.isChecked()
