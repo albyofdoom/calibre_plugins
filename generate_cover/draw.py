@@ -82,8 +82,10 @@ class TextLine(object):
 
 
 def get_textline(text, font_info, margin, fill_color='#000000'):
-    return TextLine(text, font_info, font_info['size'], margin,
+    line = TextLine(text, font_info, font_info['size'], margin,
                     align=font_info.get('align', 'center'))
+    line.fill_color = fill_color
+    return line
 
 
 class DrawingWand(object):
@@ -231,7 +233,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     border_width = options.get(cfg.KEY_TEXT_BORDER_WIDTH, 1)
     colors = options[cfg.KEY_COLORS]
     bgcolor, border_color, fill_color, stroke_color = (
-        colors['background'], colors['border'], colors['fill'],
+        colors['background'], colors['border'], colors.get('fill', '#000000'),
         colors['stroke'])
     if not options.get(cfg.KEY_COLOR_APPLY_STROKE, False) and not apply_border:
         stroke_color = None
@@ -259,7 +261,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
     top = top_mgn
     if len(top_lines) > 0:
         for line in top_lines:
-            twand = create_colored_text_wand(line, fill_color, stroke_color, apply_border, border_width)
+            twand = create_colored_text_wand(line, getattr(line, 'fill_color', fill_color), stroke_color, apply_border, border_width)
             top = draw_sized_text(
                 canvas, twand, line, top, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -272,7 +274,7 @@ def create_cover_page(top_lines, bottom_lines, display_image, options,
         footer_height = 0
         for line in bottom_lines:
             line.twand = create_colored_text_wand(
-                line, fill_color, stroke_color, apply_border, border_width)
+                line, getattr(line, 'fill_color', fill_color), stroke_color, apply_border, border_width)
             footer_height = draw_sized_text(
                 fake_canvas, line.twand, line, footer_height, left_text_margin,
                 right_text_margin, auto_reduce_font)
@@ -362,20 +364,28 @@ def generate_cover_for_book(mi, options=None, db=None):
     def get_field_margin(field_name):
         return text_padding.get(field_name, default_margin)
 
+    colors = options[cfg.KEY_COLORS]
+    title_fill = colors.get('title_fill', colors.get('fill', '#000000'))
+
+    def get_field_fill(field_name):
+        if options.get(cfg.KEY_FILL_COLORS_LINKED, True):
+            return title_fill
+        return colors.get(field_name + '_fill', colors.get('fill', '#000000'))
+
     content_lines = {}
     content_lines['Title'] = [
-        get_textline(title_line.strip(), fonts['title'], get_field_margin('Title'))
+        get_textline(title_line.strip(), fonts['title'], get_field_margin('Title'), get_field_fill('title'))
         for title_line in split_and_replace_newlines(title)]
     content_lines['Author'] = [
-        get_textline(author_line.strip(), fonts['author'], get_field_margin('Author'))
+        get_textline(author_line.strip(), fonts['author'], get_field_margin('Author'), get_field_fill('author'))
         for author_line in split_and_replace_newlines(author_string)]
     if series_string:
         content_lines['Series'] = [
-            get_textline(series_line.strip(), fonts['series'], get_field_margin('Series'))
+            get_textline(series_line.strip(), fonts['series'], get_field_margin('Series'), get_field_fill('series'))
             for series_line in split_and_replace_newlines(series_string)]
     if custom_text:
         content_lines['Custom Text'] = [
-            get_textline(ct.strip(), fonts['custom'], get_field_margin('Custom Text'))
+            get_textline(ct.strip(), fonts['custom'], get_field_margin('Custom Text'), get_field_fill('custom'))
             for ct in split_and_replace_newlines(custom_text)]
     top_lines = []
     bottom_lines = []

@@ -952,7 +952,6 @@ DIC_name_font = [
 DIC_name_color = [
     ('Background', _('Background')),
     ('Border', _('Border')),
-    ('Fill', _('Fill')),
     ('Stroke', _('Stroke')),
 ]
 
@@ -1088,6 +1087,43 @@ class FontsTab(QWidget):
         self.apply_stroke_checkbox.stateChanged[int].connect(self.changed)
         self.apply_stroke_checkbox.setVisible(False)
         colors_grid_layout.addWidget(self.apply_stroke_checkbox, row-1, 4, 1, 1)
+        colors_layout.addSpacing(10)
+        # Add individual fill color controls for each text type
+        for name, display_name in DIC_name_text_fill_color:
+            label = QLabel(display_name + ' Fill:', self)
+            setattr(self, '_fillLabel' + name, label)
+            colors_grid_layout.addWidget(label, row, 0, 1, 1)
+
+            color_ledit = ReadOnlyLineEdit('', self)
+            setattr(self, '_fillColor' + name, color_ledit)
+            colors_grid_layout.addWidget(color_ledit, row, 1, 1, 1)
+
+            clear_button = QToolButton(self)
+            clear_button.setIcon(QIcon(I('trash.png')))
+            clear_button.setToolTip(_('Reset %s fill color') % display_name.lower())
+            clear_button.clicked.connect(partial(self.reset_fill_color, color_ledit, name))
+            setattr(self, '_clearFillColor' + name, clear_button)
+            colors_grid_layout.addWidget(clear_button, row, 2, 1, 1)
+
+            select_button = QPushButton('...', self)
+            select_button.setToolTip(_('Select %s fill color') % display_name.lower())
+            select_button.clicked.connect(partial(self.pick_color, color_ledit))
+            setattr(self, '_selectFillColor' + name, select_button)
+            fm = select_button.fontMetrics()
+            select_button.setFixedWidth(fm.width('...') + 16)
+            colors_grid_layout.addWidget(select_button, row, 3, 1, 1)
+
+            row += 1
+        colors_grid_layout.setColumnStretch(4, 1)
+
+        # Add checkbox for using same fill color for all text
+        self.use_same_fill_color_checkbox = QCheckBox(_('Use the same fill color for all text'))
+        self.use_same_fill_color_checkbox.setToolTip(_('When checked, the fill color is used for all text.\n'
+                                                        'When unchecked, you can set different fill colors for each text type.'))
+        self.use_same_fill_color_checkbox.stateChanged[int].connect(self.same_fill_color_changed)
+        colors_layout.addWidget(self.use_same_fill_color_checkbox)
+        self._fillColorTitle.textChanged.connect(self.title_fill_color_changed)
+
         main_layout.insertStretch(-1)
 
     def _create_align_button(self, display_name):
@@ -1128,7 +1164,7 @@ class FontsTab(QWidget):
         colors = saved_setting[cfg.KEY_COLORS]
         # Use the name like 'title_fill', 'author_fill', etc.
         key = text_type.lower() + '_fill'
-        default_color = colors.get(key, '#000000')
+        default_color = colors.get(key, colors.get('fill', '#000000'))
         color_ledit.setText(default_color)
         self.changed.emit()
 
@@ -1139,6 +1175,10 @@ class FontsTab(QWidget):
             color_ledit.setText(picked_color.name())
             self.changed.emit()
 
+    def title_fill_color_changed(self):
+        if self.use_same_fill_color_checkbox.isChecked():
+            self.set_other_fill_colors_linked_to_title_fill_color()
+
     def same_fill_color_changed(self):
         is_checked = self.use_same_fill_color_checkbox.isChecked()
         getattr(self, '_fillLabelAuthor').setStyleSheet("")
@@ -1147,6 +1187,8 @@ class FontsTab(QWidget):
         getattr(self, '_selectFillColorAuthor').setEnabled(True)
         getattr(self, '_selectFillColorSeries').setEnabled(True)
         getattr(self, '_selectFillColorCustom').setEnabled(True)
+        for name in ('Author', 'Series', 'Custom'):
+            getattr(self, '_clearFillColor' + name).setEnabled(not is_checked)
         if is_checked:
             self.set_other_fill_colors_linked_to_title_fill_color()
             getattr(self, '_fillLabelAuthor').setStyleSheet("color: gray")
@@ -1800,11 +1842,12 @@ class CoverOptionsDialog(SizePersistedDialog):
 
         # Load the individual fill colors for each text type
         is_same_fill = self.current.get(cfg.KEY_FILL_COLORS_LINKED, True)
-        self.fonts_tab.use_same_fill_color_checkbox.setChecked(is_same_fill)
         for name, _ in DIC_name_text_fill_color:
             fill_key = name.lower() + '_fill'
             fill_color = colors.get(fill_key, colors.get('fill', '#000000'))
             getattr(self.fonts_tab, '_fillColor' + name).setText(fill_color)
+        self.fonts_tab.use_same_fill_color_checkbox.setChecked(is_same_fill)
+        self.fonts_tab.same_fill_color_changed()
 
         self.block_updates = False
 
@@ -1871,26 +1914,26 @@ class CoverOptionsDialog(SizePersistedDialog):
 
         border_color = unicode(getattr(self.fonts_tab, '_colorBorder').text()).strip()
         background_color = unicode(getattr(self.fonts_tab, '_colorBackground').text()).strip()
-        
+
         is_stroke_applied = self.fonts_tab.apply_stroke_checkbox.isChecked()
         self.current[cfg.KEY_COLOR_APPLY_STROKE] = is_stroke_applied
-        fill_color = unicode(getattr(self.fonts_tab, '_colorFill').text()).strip()
         stroke_color = unicode(getattr(self.fonts_tab, '_colorStroke').text()).strip()
-		
+
         # Collect individual fill colors
         title_fill = unicode(getattr(self.fonts_tab, '_fillColorTitle').text()).strip()
         author_fill = unicode(getattr(self.fonts_tab, '_fillColorAuthor').text()).strip()
         series_fill = unicode(getattr(self.fonts_tab, '_fillColorSeries').text()).strip()
         custom_fill = unicode(getattr(self.fonts_tab, '_fillColorCustom').text()).strip()
-        
+
         self.current[cfg.KEY_COLORS] = {'border':       border_color,
                                         'background':   background_color,
+                                        'fill':         title_fill,
                                         'title_fill':   title_fill,
                                         'author_fill':  author_fill,
                                         'series_fill':  series_fill,
                                         'custom_fill':  custom_fill,
                                         'stroke':     stroke_color }
-        
+
         # Save the use_same_fill_color setting
         is_same_fill_color = self.fonts_tab.use_same_fill_color_checkbox.isChecked()
         self.current[cfg.KEY_FILL_COLORS_LINKED] = is_same_fill_color

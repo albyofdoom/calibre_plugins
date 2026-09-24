@@ -1,5 +1,11 @@
 # Generate Cover Change Log
 
+## [2.4.2] - 2026-09-24
+### Fixed
+- Restore missing text fill color controls that prevented the cover dialog from opening
+- Keep linked fill colors synchronized and preserve legacy shared-color settings
+- Use each text element's selected fill color when rendering covers
+
 ## [2.4.1] - 2026-07-08
 ### Added
 - Czech translation
